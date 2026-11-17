@@ -31,6 +31,16 @@ A GitHub Actions job runs `tests/browser-smoke.mjs` in a headless Chromium deskt
 
 The Android-sized run uses **software-rendered Chromium**: displayed FPS does **not** predict physical Samsung Galaxy A05 performance, temperature, memory pressure or battery usage.
 
+P2.4 reference run (Chromium/SwiftShader, Low mode):
+
+| Real rose count | Reported triangles | Draw calls |
+| ---: | ---: | ---: |
+| 5 | 82.4k | 24 |
+| 12 | 197.9k | 24 |
+| 30 | 494.6k | 24 |
+
+This confirms that draw calls stayed flat under instancing in the test environment. **It does not establish acceptable frame pacing on the phone.**
+
 Run locally with Node 22+, Python 3 and installed Playwright Chromium:
 ```sh
 npm install --no-save playwright@1.58.2
@@ -60,13 +70,3 @@ On a physical Samsung Galaxy A05, open the served site in Chrome, select **Stats
 
 This acceptance gate requires a **physical device**; CI completion is not physical-device approval.
 
-## Mobile acceptance gate
-
-Test on Samsung Galaxy A05:
-1. Rose appears as available and renders in the Flowers catalog.
-2. Add flowers; selection, transforms and Auto Arrange work.
-3. Undo/Redo and Save/Load survive page refresh.
-4. Preview and quality changes work without mesh duplication.
-5. Check FPS, draw calls and memory behaviour at 5, 12 and 30 flowers.
-
-**Do not assume Android performance is verified simply because the GLB structure validates.**
