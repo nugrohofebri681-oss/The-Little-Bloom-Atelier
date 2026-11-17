@@ -408,12 +408,12 @@ function sleeveGeometry(fold){
 const paperMeshes={};
 for(const fold of Object.keys(FOLDS)){
  const mesh=new T.Mesh(sleeveGeometry(fold),paperMat);
- mesh.name="paper "+fold;mesh.castShadow=false;mesh.raycast=()=>{};
+ mesh.name="paper "+fold;mesh.castShadow=false;mesh.frustumCulled=false;mesh.raycast=()=>{};
  paperMeshes[fold]=mesh;wrapRoot.add(mesh)
 }
 /* Inner surface is visible looking down past the rose heads. */
 const lining=new T.Mesh(new T.CylinderGeometry(.166,.032,.230,48,1,true),shadeMat);
-lining.position.y=.166;lining.castShadow=false;wrapRoot.add(lining);
+lining.position.y=.166;lining.castShadow=false;lining.frustumCulled=false;wrapRoot.add(lining);
 const band=new T.Mesh(new T.CylinderGeometry(.084,.071,.044,32,1,true),ribbonMat);
 band.position.y=.151;band.castShadow=false;wrapRoot.add(band);
 /* Form the bow by sweeping a satin-width strip around 3D curves.
@@ -464,7 +464,7 @@ function updatePaperWidth(){
    attr.array[j]=base[j]*k;attr.array[j+2]=base[j+2]*k;
    attr.array[j+1]=base[j+1]-lowerLip*f
   }
-  attr.needsUpdate=true;geometry.computeVertexNormals()
+  attr.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingSphere()
  };
  for(const mesh of Object.values(paperMeshes))deform(mesh.geometry,0);
  deform(lining.geometry,lining.position.y)
