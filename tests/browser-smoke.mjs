@@ -82,6 +82,21 @@ async function runCase(label,options){
     assert.ok(safe.items.some(x=>x.a==='imp-unavailable-rose'),'unknown asset ID must survive');
     item.steps.push('missing model preserved');
 
+    // Arrangement choices must stay editable, undoable, and compatible with v1 JSON.
+    await page.locator('[data-tab="arrange"]').click();
+    assert.equal(await page.locator('#layout').inputValue(),'dome');
+    await page.locator('#layout').selectOption('garden');
+    await page.locator('[data-tab="save"]').click();
+    await page.locator('[data-s="exp"]').click();
+    assert.equal(JSON.parse(await page.locator('#js').inputValue()).layout,'garden');
+    await page.locator('#bUndo').click();
+    await page.locator('[data-s="exp"]').click();
+    assert.equal(JSON.parse(await page.locator('#js').inputValue()).layout,'dome');
+    await page.locator('#bRedo').click();
+    await page.locator('[data-s="exp"]').click();
+    assert.equal(JSON.parse(await page.locator('#js').inputValue()).layout,'garden');
+    item.steps.push('floral layout and undo/redo');
+
     await page.locator('[data-tab="preview"]').click();
     assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('pv')),true);
     await page.locator('#pvx').click();
@@ -119,7 +134,14 @@ async function runCase(label,options){
         assert.ok(calls<=baselineCalls+6,'draw calls unexpectedly scale with repeated models: '+calls+' > '+baselineCalls);
         assert.equal(await page.locator('#err').evaluate(el=>getComputedStyle(el).display),'none','fatal error during stress');
         item.bouquetBenchmarks.push({count,calls,fps,stats:stats.replaceAll('\n',' ')});
-        if(count===30)await page.screenshot({path:'test-results/android-30-roses.png',fullPage:true});
+        if(count===30){
+          await page.locator('#bReset').click();
+          await page.waitForTimeout(700);
+          const radius=Number(await page.locator('#stats').getAttribute('data-view-radius'));
+          assert.ok(radius>1.4,'Fit must zoom out enough for a full 30-rose mobile bouquet: '+radius);
+          item.fitRadius=radius;
+          await page.screenshot({path:'test-results/android-30-roses.png',fullPage:true});
+        }
         await page.locator('[data-tab="save"]').click();
       }
       item.steps.push('5 / 12 / 30 real-rose GPU instancing');
