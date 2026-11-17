@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Little Bloom Atelier · P2.5</title>
+<title>The Little Bloom Atelier · P2.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
 <style>
@@ -33,7 +33,27 @@ button:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
 .nav button,.tools button{font-size:12px;min-height:44px;padding:0 4px}.tools{gap:5px}
 #stats{position:absolute;right:10px;top:calc(env(safe-area-inset-top,0px) + 104px);width:auto;max-width:200px;font-size:10px;padding:4px 8px;text-align:right}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 170px);background:var(--maroon);color:var(--ivory);padding:8px 14px;border-radius:14px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:86%;text-align:center;z-index:6}
-#pvx{position:absolute;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);flex:none;z-index:4}body.pv .dock,body.pv #stats,body.pv #diag{display:none}
+#pvx{position:absolute;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);flex:none;z-index:4}body.pv .dock,body.pv .top,body.pv #stats,body.pv #diag{display:none}
+.sheet-handle{display:none}
+@media(max-width:620px){
+ .dock{z-index:3;gap:6px}
+ .sheet-handle{display:flex;flex:none;align-items:center;justify-content:space-between;max-width:440px;
+  width:100%;min-height:38px;padding:6px 18px;border-radius:17px;background:rgba(246,240,231,.97);
+  border:1px solid var(--champ);font-size:13px;touch-action:pan-x;box-shadow:0 3px 12px #713f5017}
+ .sheet-handle[hidden]{display:none}
+ .sheet-handle::before{content:"";position:absolute;left:calc(50% - 17px);margin-top:-25px;
+  width:34px;height:4px;border-radius:5px;background:var(--dusty)}
+ .dock.compact #panel,.dock.compact .tools{display:none}
+ .dock #panel{max-height:min(35vh,320px);overscroll-behavior:contain}
+ .dock.compact .nav{margin-top:0}
+ #panel .slider-field{display:block;margin:10px 0}
+ #panel .slider-field>span{display:flex;justify-content:space-between}
+ #panel .slider-field output{font-variant-numeric:tabular-nums;font-weight:600}
+ #panel .slider-field input{display:block;min-height:32px;touch-action:pan-y}
+ #panel .nudge-row button{font-size:11px;min-height:40px}
+ .top{max-width:calc(100% - 26px)}
+}
+@media(min-width:621px){.sheet-handle{display:none!important}}
 @media (max-width:620px){
  .tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
  .tools button{min-width:0;min-height:42px;font-size:12px}
@@ -49,7 +69,7 @@ button:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
 <div id="diag"></div>
 <div id="err"></div>
 <div class="stats" id="stats"></div><div id="toast"></div>
-<div class="dock"><div id="panel" hidden></div>
+<div class="dock" id="dock"><button id="sheetHandle" class="sheet-handle" aria-controls="panel" aria-expanded="false" hidden type="button"><span id="sheetLabel">Show editor</span><span id="sheetArrow" aria-hidden="true">⌃</span></button><div id="panel" hidden></div>
 <div class="row nav"><button data-tab="flowers">Flowers</button><button data-tab="arrange">Arrange</button><button data-tab="style">Style</button><button data-tab="save">Save</button><button data-tab="preview">Preview</button></div>
 <div class="row tools"><button id="bUndo">Undo</button><button id="bRedo">Redo</button><button id="bAuto" aria-pressed="false">Spin</button><button id="bReset" title="Fit the entire bouquet in view">Fit</button><button id="bQ">Quality: Medium</button><button id="bPerf" aria-pressed="true">Stats</button></div>
 <div hidden><button id="mSingle"></button><button id="mBouq"></button></div></div>
