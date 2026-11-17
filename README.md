@@ -1,6 +1,6 @@
 # The Little Bloom Atelier 🌹
 
-A mobile-first 3D bouquet atelier, currently in **P2.2.1 development**.
+A mobile-first 3D bouquet atelier, currently in **P2.3 development**.
 
 ## Current build
 
@@ -9,6 +9,8 @@ A mobile-first 3D bouquet atelier, currently in **P2.2.1 development**.
 - **Rose by symension123**: genuine, converted GLB model with mobile-optimized geometry and textures.
 - Catalog manifest: `assets/manifest.json`.
 - P2.2.1 stability: a secondary GLTFLoader CDN mirror, handled clipboard permission rejection, and confirmation controls that reset cleanly.
+- **P2.3** keeps missing imported flowers in saved designs and renders procedural placeholders rather than silently dropping them. Restoring the GLB preserves the original ID in the exported JSON.
+- **P2.3 mobile budget** caps the pixel ratio and shadow map size for Android/iOS; manual Low, Medium and High quality remain available.
 - Validation and Android rendering still in progress; this is not yet a production release.
 
 ## Run
@@ -20,6 +22,17 @@ The app fetches Three.js r128 and GLTFLoader from CDNs, so first load needs inte
 ## Verify source and models
 
 With Node.js 20+ run `node tests/source-smoke.mjs`. It checks inline JavaScript syntax, manifest entries, attribution metadata, installed GLB headers and file lengths. **It does not verify browser rendering, visual quality, or Android FPS.**
+
+## Browser regression tests
+
+A GitHub Actions job runs `tests/browser-smoke.mjs` in a headless Chromium desktop viewport and an Android-sized emulated mobile viewport. The workflow uploads screenshots and a JSON result as the **browser-review** artifact. This is a browser functional check, **not measured performance on physical Samsung Galaxy A05 hardware**.
+
+Run locally with Node 22+, Python 3 and installed Playwright Chromium:
+```sh
+npm install --no-save playwright@1.58.2
+npx playwright install chromium
+node tests/browser-smoke.mjs
+```
 
 ## Model provenance and credits
 
