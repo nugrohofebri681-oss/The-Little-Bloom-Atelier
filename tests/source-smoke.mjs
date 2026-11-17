@@ -55,7 +55,7 @@ for (const entry of manifest.assets) {
 assert.ok(installed >= 1, 'no real flower model installed');
 console.log(`PASS: ${scripts.length} inline scripts compile, ${manifest.assets.length} catalog entries, ${installed} GLB validated.`);
 
-assert.match(html, /function sleeveGeometry\(\)/, 'wrapping has procedural sleeve geometry');
+assert.match(html, /function sleeveGeometry\(fold\)/, 'wrapping has procedural sleeve geometry');
 assert.match(html, /function syncWrapping\(\)/, 'wrapping and ribbon update without reloading GLB');
 assert.match(html, /wrap:normalizeWrap\(bq\.wrap\)/, 'design exports preserve wrapping choices');
 assert.match(html, /wrap:normalizeWrap\(o\.wrap,true\)/, 'old designs without wrapping remain compatible');
