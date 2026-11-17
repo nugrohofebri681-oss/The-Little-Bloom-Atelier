@@ -255,6 +255,14 @@ function focusFlower(it,zoom){
  if(zoom)st.r=Math.min(st.r,1.75);
  updateSafeProjection()
 }
+function keepSelectedSafe(it){
+ if(!mobileUI()||!it||it.id!==sel)return;
+ cam.updateMatrixWorld(true);
+ const p=new V3(it.x,it.y,it.z).project(cam),r=safeRect();
+ const x=(p.x+1)*cv.clientWidth/2,y=(1-p.y)*cv.clientHeight/2;
+ // While dragging a slider, keep the camera steady unless the rose approaches the controls.
+ if(x<r.left+30||x>r.right-30||y<r.top+28||y>r.bottom-28)focusFlower(it,false)
+}
 function resetView(){focusGoal=null;const v=VIEW[st.mode];st.theta=.6;st.phi=1.3;st.r=v.r*(cam.fov>45?1:1.35);st.tgt.set(v.x,v.y,0);
  if(st.mode===2)fitBouquet(true)}
 function applyCam(){st.phi=Math.min(1.58,Math.max(.2,st.phi));st.r=Math.min(7,Math.max(.16,st.r));
@@ -436,7 +444,7 @@ function syncScene(force){if(force)[...inst.keys()].forEach(drop);
  const live=new Set([...inst.values()].map(e=>e.o).concat(batchMap?[...batchMap.values()]:[]));
  studioG().children.slice().forEach(c=>{if(!live.has(c)){studioG().remove(c);disposeObj(c)}});
  syncBatches();fitBouquet(false);syncRing()}
-function updateOne(it){syncScene();if(it.id===sel)focusFlower(it,false)}
+function updateOne(it){syncScene();keepSelectedSafe(it)}
 function studioRefresh(force){syncScene(force)}
 function syncRing(){const it=cur();selR.visible=!!it&&st.mode===2&&!document.body.classList.contains("pv");if(it)selR.position.set(it.x,it.y,it.z)}
 const snap=()=>JSON.stringify(bq);
@@ -551,7 +559,7 @@ const P_=$("panel");
 P_.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const it=cur(),d=b.dataset;
  if(d.add)addFlower(d.add);
  else if(d.nudge&&it){const [k,amount]=d.nudge.split(":"),range={x:[-.65,.65],y:[.2,.46],z:[-.65,.65]};
-  if(range[k]){it[k]=Math.max(range[k][0],Math.min(range[k][1],Math.round((it[k]+Number(amount))*1000)/1000));commit();focusFlower(it,false)}
+  if(range[k]){it[k]=Math.max(range[k][0],Math.min(range[k][1],Math.round((it[k]+Number(amount))*1000)/1000));commit();keepSelectedSafe(it)}
  }
  else if(d.m){mode=d.m;updUI()}else if(d.col&&it){it.c=d.col;commit()}
  else if(d.a==="done")setSheet(false);
