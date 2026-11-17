@@ -65,6 +65,7 @@ async function runCase(label,options){
     await page.locator('[data-s="new"]').click();
     await page.locator('[data-s="load"]').click();
     await page.locator('[data-s="load"]').click();
+    await page.waitForFunction(()=>document.querySelector('#toast')?.textContent.includes('Design loaded'),null,{timeout:10000});
     await page.locator('[data-s="exp"]').click();
     const restored=JSON.parse(await page.locator('#js').inputValue());
     assert.equal(restored.items.length,design.items.length,'load restores flower count');
@@ -74,6 +75,7 @@ async function runCase(label,options){
     const withMissing={...restored,items:[...restored.items,missing]};
     await page.locator('#js').fill(JSON.stringify(withMissing));
     await page.locator('[data-s="imp"]').click();
+    await page.waitForFunction(()=>document.querySelector('#toast')?.textContent.includes('1 unavailable model'),null,{timeout:10000});
     await page.locator('[data-s="exp"]').click();
     const safe=JSON.parse(await page.locator('#js').inputValue());
     assert.equal(safe.items.length,withMissing.items.length,'missing asset remains in the design');
