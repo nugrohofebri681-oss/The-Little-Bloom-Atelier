@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Little Bloom Atelier · P2.7</title>
+<title>The Little Bloom Atelier · P2.8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
 <style>
@@ -347,61 +347,108 @@ function matFor(c){if(!cmat.has(c)){const m=mats.petal.clone();m.color.setHex((C
    Visibility and palette are part of the existing undoable bouquet document. */
 const PAPER={champagne:["Champagne",0xe8d7c6],blush:["Blush",0xdca5b3],sage:["Sage",0x9baf99],ivory:["Ivory",0xf0e9da]};
 const BOW={maroon:["Maroon",0x713f50],rose:["Dusty rose",0xc98e9f],champagne:["Champagne",0xd9bc91],sage:["Sage",0x879b83]};
-const defaultWrap=()=>({enabled:true,paper:"champagne",ribbon:true,bow:"maroon"});
+const FOLDS={classic:"Classic folds",fan:"Fan pleats",petal:"Petal edge"};
+const defaultWrap=()=>({enabled:true,paper:"champagne",ribbon:true,bow:"maroon",fold:"classic"});
 function normalizeWrap(w,legacy=false){
  const d=defaultWrap();
  if(!w||typeof w!=="object")return {...d,enabled:!legacy};
  return {enabled:typeof w.enabled==="boolean"?w.enabled:d.enabled,
   paper:Object.hasOwn(PAPER,w.paper)?w.paper:d.paper,
   ribbon:typeof w.ribbon==="boolean"?w.ribbon:d.ribbon,
-  bow:Object.hasOwn(BOW,w.bow)?w.bow:d.bow}
+  bow:Object.hasOwn(BOW,w.bow)?w.bow:d.bow,
+  fold:Object.hasOwn(FOLDS,w.fold)?w.fold:d.fold}
 }
 const wrapRoot=new T.Group();wrapRoot.name="florist wrapping";scene.add(wrapRoot);
 const paperMat=new T.MeshStandardMaterial({color:PAPER.champagne[1],vertexColors:true,side:T.DoubleSide,roughness:.96,metalness:0});
 const shadeMat=new T.MeshStandardMaterial({color:0xb2a293,side:T.DoubleSide,roughness:1,metalness:0});
 const ribbonMat=new T.MeshStandardMaterial({color:BOW.maroon[1],side:T.DoubleSide,roughness:.63,metalness:.03});
-/* Subtle faceted folds and a gently staggered paper edge. */
-function sleeveGeometry(){
- const n=32,pos=[],colors=[],index=[],up=.308,down=.049,topR=.184,baseR=.036;
- for(let i=0;i<=n;i++){
-  const a=i*2*Math.PI/n,pleat=1+.065*Math.cos(i*Math.PI*.5),r=topR*pleat;
-  const ty=up+.008*Math.cos(i*Math.PI*.5);
-  pos.push(Math.sin(a)*baseR,down,Math.cos(a)*baseR,Math.sin(a)*r,ty,Math.cos(a)*r);
-  const light=.9+.09*Math.cos(i*Math.PI*.5);
-  for(let k=0;k<2;k++)colors.push(light,light*.994,light*.985)
+/* Soft origami-style paper: radial folds deepen toward a gently scalloped lip.
+   Three lightweight silhouette options are built only once, not on every edit. */
+function sleeveGeometry(fold){
+ const n=64,steps=[{y:.048,r:.037},{y:.105,r:.062},{y:.151,r:.079},{y:.222,r:.125},{y:.317,r:.176}],v=[],rgb=[],ix=[];
+ const folds=fold==="fan"?16:fold==="petal"?8:12;
+ const ripple=fold==="fan"?.052:fold==="petal"?.035:.026;
+ const topWave=fold==="fan"?.017:fold==="petal"?.022:.009;
+ function vertex(a,r,y,k,row){
+  v.push(Math.sin(a)*r,y,Math.cos(a)*r);
+  const shade=Math.max(.62,Math.min(1,.86+.095*Math.cos(a*folds+.12)+.025*row));
+  rgb.push(shade,shade*.989,shade*.98)
  }
- for(let i=0;i<n;i++){const j=i*2;index.push(j,j+1,j+3,j,j+3,j+2)}
- const g=new T.BufferGeometry();g.setAttribute("position",new T.Float32BufferAttribute(pos,3));
- g.setAttribute("color",new T.Float32BufferAttribute(colors,3));g.setIndex(index);g.computeVertexNormals();return g
+ for(let row=0;row<steps.length;row++){
+  const t=row/(steps.length-1),q=steps[row];
+  for(let i=0;i<=n;i++){
+   const a=i*2*Math.PI/n;
+   const crease=Math.cos(a*folds+.12);
+   const rr=q.r*(1+ripple*t*t*crease+.009*t*Math.cos(a*4));
+   const y=q.y+(row===steps.length-1?topWave*(.58+.42*Math.cos(a*folds/2+.18)):0)*Math.cos(a*folds+.15);
+   vertex(a,rr,y,crease,row)
+  }
+ }
+ for(let row=0;row<steps.length-1;row++)for(let i=0;i<n;i++){
+  const a=row*(n+1)+i,b=a+(n+1);ix.push(a,b,a+1,b,b+1,a+1)
+ }
+ // Turned-over narrow lip shares this geometry/draw call but has darker back-facing folds.
+ const topIndex=(steps.length-1)*(n+1);
+ for(let i=0;i<=n;i++){
+  const a=i*2*Math.PI/n,crease=Math.cos(a*folds+.12);
+  const r=steps[steps.length-1].r*(.925+.02*crease);
+  const y=steps[steps.length-1].y-.015+topWave*.5*Math.cos(a*folds+.15);
+  v.push(Math.sin(a)*r,y,Math.cos(a)*r);
+  rgb.push(.73+.05*crease,.72+.05*crease,.71+.05*crease)
+ }
+ for(let i=0;i<n;i++){
+  const a=topIndex+i,b=steps.length*(n+1)+i;
+  ix.push(a,b,a+1,b,b+1,a+1)
+ }
+ const geo=new T.BufferGeometry();
+ geo.setAttribute("position",new T.Float32BufferAttribute(v,3));
+ geo.setAttribute("color",new T.Float32BufferAttribute(rgb,3));
+ geo.setIndex(ix);geo.computeVertexNormals();return geo
 }
-const paper=new T.Mesh(sleeveGeometry(),paperMat);paper.castShadow=false;wrapRoot.add(paper);
-/* Inner lining makes the lip visibly folded instead of a single open surface. */
-const lining=new T.Mesh(new T.CylinderGeometry(.174,.032,.222,32,1,true),shadeMat);
-lining.position.y=.157;lining.castShadow=false;wrapRoot.add(lining);
-const band=new T.Mesh(new T.CylinderGeometry(.093,.074,.041,24,1,true),ribbonMat);
-band.position.y=.146;band.castShadow=false;wrapRoot.add(band);
-const bowParts=new T.Group();bowParts.position.set(0,.153,.114);wrapRoot.add(bowParts);
-function bowShape(side){
- const sh=new T.Shape();sh.moveTo(0,0);
- sh.bezierCurveTo(side*.029,.049,side*.097,.066,side*.102,.034);
- sh.bezierCurveTo(side*.116,-.008,side*.035,-.031,0,0);
- return new T.ShapeGeometry(sh,7)
+const paperMeshes={};
+for(const fold of Object.keys(FOLDS)){
+ const mesh=new T.Mesh(sleeveGeometry(fold),paperMat);
+ mesh.name="paper "+fold;mesh.castShadow=false;mesh.raycast=()=>{};
+ paperMeshes[fold]=mesh;wrapRoot.add(mesh)
+}
+/* Inner surface is visible looking down past the rose heads. */
+const lining=new T.Mesh(new T.CylinderGeometry(.157,.032,.230,48,1,true),shadeMat);
+lining.position.y=.166;lining.castShadow=false;wrapRoot.add(lining);
+const band=new T.Mesh(new T.CylinderGeometry(.084,.071,.044,32,1,true),ribbonMat);
+band.position.y=.151;band.castShadow=false;wrapRoot.add(band);
+/* Form the bow by sweeping a satin-width strip around 3D curves.
+   Loops bulge toward the viewer, and tails bend backward before falling. */
+const bowParts=new T.Group();bowParts.position.set(0,.153,.094);wrapRoot.add(bowParts);
+function ribbonStrip(points,width){
+ const path=new T.CatmullRomCurve3(points.map(p=>new V3(...p)),false,"catmullrom",.5);
+ const n=28,verts=[],idx=[];
+ for(let i=0;i<=n;i++){
+  const t=i/n,pt=path.getPoint(t),tan=path.getTangent(t);
+  const len=Math.hypot(tan.x,tan.y)||1,ox=-tan.y/len,oy=tan.x/len;
+  const half=width*(.55+.45*Math.sin(Math.PI*(.08+t*.84)));
+  verts.push(pt.x+ox*half,pt.y+oy*half,pt.z,
+    pt.x-ox*half,pt.y-oy*half,pt.z-.002);
+ }
+ for(let i=0;i<n;i++){const a=2*i;idx.push(a,a+1,a+2,a+1,a+3,a+2)}
+ const geo=new T.BufferGeometry();
+ geo.setAttribute("position",new T.Float32BufferAttribute(verts,3));
+ geo.setIndex(idx);geo.computeVertexNormals();return geo
 }
 for(const side of [-1,1]){
- const loop=new T.Mesh(bowShape(side),ribbonMat);bowParts.add(loop);
- const tailShape=new T.Shape();tailShape.moveTo(0,0);
- tailShape.lineTo(side*.024,-.028);tailShape.lineTo(side*.066,-.109);
- tailShape.lineTo(side*.044,-.099);tailShape.lineTo(side*.02,-.111);
- tailShape.lineTo(side*.009,-.046);tailShape.closePath();
- const tail=new T.Mesh(new T.ShapeGeometry(tailShape),ribbonMat);
- tail.position.z=-.002;bowParts.add(tail)
+ const loop=new T.Mesh(ribbonStrip([[0,0,.014],[side*.049,.044,.057],[side*.109,.044,.065],
+   [side*.103,-.001,.040],[side*.027,-.010,.013]],.0135),ribbonMat);
+ loop.name="volumetric satin loop";bowParts.add(loop);
+ const tail=new T.Mesh(ribbonStrip([[side*.008,-.004,.012],[side*.033,-.038,.030],
+   [side*.064,-.079,.012],[side*.072,-.125,-.013]],.014),ribbonMat);
+ tail.name="curved ribbon tail";bowParts.add(tail)
 }
-const knot=new T.Mesh(new T.SphereGeometry(1,9,6),ribbonMat);
-knot.scale.set(.020,.015,.009);knot.position.z=.007;bowParts.add(knot);
+const knot=new T.Mesh(new T.SphereGeometry(1,12,8),ribbonMat);
+knot.scale.set(.021,.017,.014);knot.position.z=.021;bowParts.add(knot);
 wrapRoot.traverse(o=>{o.raycast=()=>{}});
 function syncWrapping(){
  const w=normalizeWrap(bq.wrap);
  wrapRoot.visible=st.mode===2&&!!bq.items.length&&w.enabled;
+ for(const [name,mesh] of Object.entries(paperMeshes))mesh.visible=name===w.fold;
  paperMat.color.setHex(PAPER[w.paper][1]);
  shadeMat.color.setHex(PAPER[w.paper][1]).multiplyScalar(.87);
  ribbonMat.color.setHex(BOW[w.bow][1]);
