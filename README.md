@@ -18,7 +18,7 @@ A mobile-first 3D bouquet atelier, currently in **P2.6 development**.
 - **P2.5 scene lifecycle:** obsolete instancing groups are detached when no longer needed; model sharing remains enabled.
 - **P2.6 mobile editing:** the bottom editor sheet can be expanded or collapsed with a large touch handle (or a vertical swipe on that handle). After adding a flower it collapses, allowing a larger canvas.
 - **Unobstructed safe zone:** camera projection centers the scene inside the actual space between the header and editing controls. The Fit command accounts for the reduced visible viewport and keeps the flower arrangement itself unchanged.
-- **Focused editing:** selecting a flower on canvas opens Arrange → Advanced, focuses the camera toward it and keeps it visible above the controls. Direct touch sliders display numeric values; precise nudges step X/Z/Y by 0.01 units. **Done** collapses the sheet.
+- **Focused editing:** selecting a flower on canvas opens Arrange → Advanced, focuses the camera toward it and keeps it visible above the controls. A 38px screen-space fallback makes small petals easier to tap on phones. Direct touch sliders display numeric values; precise nudges step X/Z/Y by 0.01 units. **Done** collapses the sheet.
 - **Preview:** hides header, menus and overlays for a clean 3D presentation. Save data remains backward-compatible with design schema v1.
 - Validation and Android rendering still in progress; this is not yet a production release.
 
