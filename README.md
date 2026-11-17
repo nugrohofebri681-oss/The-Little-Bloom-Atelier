@@ -1,6 +1,6 @@
 # The Little Bloom Atelier 🌹
 
-A mobile-first 3D bouquet atelier, currently in **P2.5 development**.
+A mobile-first 3D bouquet atelier, currently in **P2.6 development**.
 
 ## Current build
 
@@ -16,6 +16,10 @@ A mobile-first 3D bouquet atelier, currently in **P2.5 development**.
 - **P2.5 floral arrangements:** choose Romantic Dome, Florist Spiral, or Wild Garden under Arrange (Simple). Changing a pattern is undoable, and the choice is included in new design exports without breaking older v1 JSON files.
 - **P2.5 true portrait Fit:** the Fit button and smart auto-fit account for narrow horizontal field of view, automatically zooming out as needed for large bouquets instead of using the old 1.4 camera-distance ceiling. Canvas interactions can still zoom and rotate; presets keep the same flower assets.
 - **P2.5 scene lifecycle:** obsolete instancing groups are detached when no longer needed; model sharing remains enabled.
+- **P2.6 mobile editing:** the bottom editor sheet can be expanded or collapsed with a large touch handle (or a vertical swipe on that handle). After adding a flower it collapses, allowing a larger canvas.
+- **Unobstructed safe zone:** camera projection centers the scene inside the actual space between the header and editing controls. The Fit command accounts for the reduced visible viewport and keeps the flower arrangement itself unchanged.
+- **Focused editing:** selecting a flower on canvas opens Arrange → Advanced, focuses the camera toward it and keeps it visible above the controls. Direct touch sliders display numeric values; precise nudges step X/Z/Y by 0.01 units. **Done** collapses the sheet.
+- **Preview:** hides header, menus and overlays for a clean 3D presentation. Save data remains backward-compatible with design schema v1.
 - Validation and Android rendering still in progress; this is not yet a production release.
 
 ## Run
@@ -30,7 +34,7 @@ With Node.js 20+ run `node tests/source-smoke.mjs`. It checks inline JavaScript 
 
 ## Browser regression tests
 
-A GitHub Actions job runs `tests/browser-smoke.mjs` in a headless Chromium desktop viewport and an Android-sized emulated mobile viewport. It checks basic editing, load/save, missing-model preservation and repeated real GLB flowers (5, 12, 30), including whether draw calls remain bounded. P2.5 also verifies arrangement selection, undo/redo, and the mobile Fit camera on 30 roses. The workflow uploads screenshots and a JSON result as the **browser-review** artifact.
+A GitHub Actions job runs `tests/browser-smoke.mjs` in a headless Chromium desktop viewport and an Android-sized emulated mobile viewport. It checks basic editing, load/save, missing-model preservation and repeated real GLB flowers (5, 12, 30), including whether draw calls remain bounded. P2.5 also verifies arrangement selection, undo/redo, and the mobile Fit camera on 30 roses. P2.6 adds mobile panel collapse/expand, focus checks against the actual safe rectangle, and precision nudge tests. The workflow uploads screenshots and a JSON result as the **browser-review** artifact.
 
 The Android-sized run uses **software-rendered Chromium**: displayed FPS does **not** predict physical Samsung Galaxy A05 performance, temperature, memory pressure or battery usage.
 
@@ -65,11 +69,13 @@ See `assets/LICENSES.md` for further details.
 
 On a physical Samsung Galaxy A05, open the served site in Chrome, select **Stats**, and check the following in **Low** quality first. Use a fresh browser tab or save/export your design before stress testing.
 
-1. Confirm that the Sketchfab rose appears and responds to rotation and selection.
-2. Assemble 5, then 12, then 30 flowers. Inspect FPS and responsiveness after each addition.
-3. Test Undo/Redo, Save/Load, Preview, camera pinch zoom, and the 30-flower scene.
-4. Switch to Medium only if the phone stays responsive and cool. If the renderer feels sluggish, return to Low.
-5. Confirm designs remain after refreshing, and that unavailable imports keep their original IDs.
+1. Confirm that the Sketchfab rose appears and responds to rotation and selection. Tap **Flowers**, add a rose, and confirm the editor sheet collapses to leave the preview unobstructed.
+2. Tap the sheet's **Edit** handle to expand it; choose **Arrange → Advanced**, tap a flower on canvas, and check its head appears above the panel. Adjust X/Y/Z and try the 0.01 nudge buttons and **Done**.
+3. Open/close the panel while editing and rotate/pinch the canvas; confirm no flower coordinates change unless you edit or re-arrange them.
+4. Assemble 5, then 12, then 30 flowers. Inspect FPS and responsiveness after each addition.
+5. Test Undo/Redo, Save/Load, Preview, camera pinch zoom, and the 30-flower scene.
+6. Switch to Medium only if the phone stays responsive and cool. If the renderer feels sluggish, return to Low.
+7. Confirm designs remain after refreshing, and that unavailable imports keep their original IDs.
 
 This acceptance gate requires a **physical device**; CI completion is not physical-device approval.
 
