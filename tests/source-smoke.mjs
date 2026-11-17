@@ -7,7 +7,7 @@ import {readFileSync, existsSync} from 'node:fs';
 import {Script} from 'node:vm';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-assert.match(html, /<title>The Little Bloom Atelier · P2\.7<\/title>/);
+assert.match(html, /<title>The Little Bloom Atelier · P2\.8<\/title>/);
 const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
 assert.ok(scripts.length >= 3, 'expected the diagnostic, application and boot scripts');
 for (const [i, block] of scripts.entries()) {
@@ -61,3 +61,8 @@ assert.match(html, /wrap:normalizeWrap\(bq\.wrap\)/, 'design exports preserve wr
 assert.match(html, /wrap:normalizeWrap\(o\.wrap,true\)/, 'old designs without wrapping remain compatible');
 assert.match(html, /data-paper=/, 'wrapping colors are selectable');
 assert.match(html, /data-ribbon-toggle/, 'ribbon can be toggled');
+
+assert.match(html, /function ribbonStrip\(points,width\)/, 'satin loops use curved 3D ribbon surface');
+assert.match(html, /const FOLDS=\{classic:/, 'paper silhouettes are available');
+assert.match(html, /for\(const \[name,mesh\] of Object\.entries\(paperMeshes\)\)/, 'one sleeve silhouette is shown at a time');
+assert.match(html, /data-fold=/, 'paper folding selector is present');
