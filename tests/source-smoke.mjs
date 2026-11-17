@@ -7,7 +7,7 @@ import {readFileSync, existsSync} from 'node:fs';
 import {Script} from 'node:vm';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-assert.match(html, /<title>The Little Bloom Atelier · P2\.5<\/title>/);
+assert.match(html, /<title>The Little Bloom Atelier · P2\.6<\/title>/);
 const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
 assert.ok(scripts.length >= 3, 'expected the diagnostic, application and boot scripts');
 for (const [i, block] of scripts.entries()) {
@@ -23,6 +23,11 @@ assert.match(html, /q:portable\?0:1/, 'mobile should start in efficient low-qual
 assert.match(html, /function fitBouquet\(force\)/, 'portrait-aware camera fitting must be available');
 assert.match(html, /layout:\["dome","spiral","garden"\]/, 'saved designs should restore arrangement presets');
 assert.match(html, /id=layout/, 'arrangement selector should be visible');
+assert.match(html, /function safeRect\(\)/, 'mobile unobstructed safe area calculation');
+assert.match(html, /function updateSafeProjection\(\)/, 'projection changes with mobile sheet bounds');
+assert.match(html, /function focusFlower\(it,zoom\)/, 'focus selected flower');
+assert.match(html, /id="sheetHandle"/, 'mobile sheet toggle exists');
+assert.match(html, /data-nudge="y:\.01"/, 'accessible precision controls exist');
 
 const manifest = JSON.parse(readFileSync(new URL('../assets/manifest.json', import.meta.url), 'utf8'));
 assert.equal(manifest.schema, 1);
