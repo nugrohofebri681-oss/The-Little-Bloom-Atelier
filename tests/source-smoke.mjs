@@ -7,7 +7,7 @@ import {readFileSync, existsSync} from 'node:fs';
 import {Script} from 'node:vm';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-assert.match(html, /<title>The Little Bloom Atelier · P2\.6<\/title>/);
+assert.match(html, /<title>The Little Bloom Atelier · P2\.7<\/title>/);
 const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
 assert.ok(scripts.length >= 3, 'expected the diagnostic, application and boot scripts');
 for (const [i, block] of scripts.entries()) {
@@ -54,3 +54,10 @@ for (const entry of manifest.assets) {
 }
 assert.ok(installed >= 1, 'no real flower model installed');
 console.log(`PASS: ${scripts.length} inline scripts compile, ${manifest.assets.length} catalog entries, ${installed} GLB validated.`);
+
+assert.match(html, /function sleeveGeometry\(\)/, 'wrapping has procedural sleeve geometry');
+assert.match(html, /function syncWrapping\(\)/, 'wrapping and ribbon update without reloading GLB');
+assert.match(html, /wrap:normalizeWrap\(bq\.wrap\)/, 'design exports preserve wrapping choices');
+assert.match(html, /wrap:normalizeWrap\(o\.wrap,true\)/, 'old designs without wrapping remain compatible');
+assert.match(html, /data-paper=/, 'wrapping colors are selectable');
+assert.match(html, /data-ribbon-toggle/, 'ribbon can be toggled');
