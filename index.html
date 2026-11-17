@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Little Bloom Atelier · P2.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--ivory:#F6F0E7;--blush:#E8B9C3;--dusty:#C98E9F;--maroon:#713F50;--sage:#879B83;--champ:#D9BC91;box-sizing:border-box}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:radial-gradient(120% 90% at 50% 35%,#FBF7F0 0%,#F0E6D8 70%,#E6D8C6 100%);color:var(--maroon);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;outline:none}
+.top{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 0;pointer-events:none}
+h1{font:italic 500 26px/1.1 "Cormorant Garamond",Georgia,serif;margin:0;letter-spacing:.2px}
+.top p{margin:4px 0 0;font:400 15px/1.2 "Cormorant Garamond",Georgia,serif;color:var(--dusty)}
+.dock{position:absolute;left:0;right:0;bottom:0;padding:0 12px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:8px;align-items:center}
+.stats{font-size:12px;background:rgba(246,240,231,.85);border:1px solid var(--champ);border-radius:12px;padding:6px 10px;line-height:1.45;max-width:340px;width:100%;text-align:center}
+.stats[hidden]{display:none}
+.stats small{display:block;color:var(--dusty)}
+.row{display:flex;gap:8px;width:100%;max-width:420px}
+button{flex:1;min-height:48px;border:1px solid var(--dusty);background:rgba(246,240,231,.9);color:var(--maroon);border-radius:24px;font:500 14px system-ui,sans-serif;padding:0 8px;cursor:pointer}
+button[aria-pressed=true]{background:var(--maroon);color:var(--ivory);border-color:var(--maroon)}
+button:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+#err{position:absolute;inset:0;z-index:5;display:none;flex-direction:column;gap:10px;align-items:center;justify-content:center;padding:28px;text-align:center;background:rgba(246,240,231,.97);font:500 17px/1.4 "Cormorant Garamond",Georgia,serif;overflow:auto}
+#err pre{max-width:100%;white-space:pre-wrap;word-break:break-word;text-align:left;font:11px/1.35 ui-monospace,monospace;background:#fff8;border:1px solid var(--champ);border-radius:10px;padding:8px;user-select:text}
+#load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font:italic 500 20px "Cormorant Garamond",Georgia,serif;color:var(--dusty)}
+#diag{position:absolute;left:18px;right:18px;top:calc(env(safe-area-inset-top,0px) + 100px);font-size:11px;line-height:1.5;color:var(--maroon);pointer-events:none;display:flex;flex-wrap:wrap;gap:2px 10px}
+#diag[hidden]{display:none}
+.credits{margin-top:5px;font-size:10px;color:var(--maroon);line-height:1.35;max-width:320px;background:rgba(246,240,231,.74);border-radius:7px;padding:3px 6px;pointer-events:auto}
+.credits a{color:var(--maroon);text-underline-offset:2px}
+#panel{width:100%;max-width:440px;max-height:38vh;overflow:auto;background:rgba(246,240,231,.95);border:1px solid var(--champ);border-radius:16px;padding:8px 10px;font-size:13px}
+#panel[hidden]{display:none}#panel .r{display:flex;gap:6px;align-items:center;margin:5px 0}#panel button,#panel select,#panel input[type=text],#panel textarea{min-height:42px;font:13px system-ui;border:1px solid var(--dusty);border-radius:12px;background:#fffaf3;color:var(--maroon);padding:0 8px}
+.asset-source{display:inline-block;margin-top:2px;color:var(--maroon);text-decoration:underline;text-underline-offset:2px;font-size:11px}#panel textarea{padding:6px}#panel label{display:block;margin:4px 0}#panel input[type=range]{width:100%;accent-color:var(--maroon)}#panel button{min-height:42px}button:disabled{opacity:.4}
+.nav button,.tools button{font-size:12px;min-height:44px;padding:0 4px}.tools{gap:5px}
+#stats{position:absolute;right:10px;top:calc(env(safe-area-inset-top,0px) + 104px);width:auto;max-width:200px;font-size:10px;padding:4px 8px;text-align:right}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 170px);background:var(--maroon);color:var(--ivory);padding:8px 14px;border-radius:14px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:86%;text-align:center;z-index:6}
+#pvx{position:absolute;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);flex:none;z-index:4}body.pv .dock,body.pv #stats,body.pv #diag{display:none}
+</style></head><body>
+<canvas id="c" tabindex="0" aria-label="3D rose viewer"></canvas>
+<div class="top"><h1>The Little Bloom Atelier</h1><p>Create something beautiful, one bloom at a time.</p><div class="credits">3D Rose by <a href="https://sketchfab.com/symension123" target="_blank" rel="noopener noreferrer">symension123</a> · <a href="https://sketchfab.com/3d-models/rose-5d4ad325925c4b4b8a8b4969b367f91a" target="_blank" rel="noopener noreferrer">Sketchfab / CC Attribution</a> · modified</div></div>
+<div id="load">Preparing the studio…</div>
+<div id="diag"></div>
+<div id="err"></div>
+<div class="stats" id="stats"></div><div id="toast"></div>
+<div class="dock"><div id="panel" hidden></div>
+<div class="row nav"><button data-tab="flowers">Flowers</button><button data-tab="arrange">Arrange</button><button data-tab="style">Style</button><button data-tab="save">Save</button><button data-tab="preview">Preview</button></div>
+<div class="row tools"><button id="bUndo">Undo</button><button id="bRedo">Redo</button><button id="bAuto" aria-pressed="false">Spin</button><button id="bReset">Reset</button><button id="bQ">Quality: Medium</button><button id="bPerf" aria-pressed="true">Stats</button></div>
+<div hidden><button id="mSingle"></button><button id="mBouq"></button></div></div>
+<button id="pvx" hidden>Exit preview</button>
+<script>
+(function(){
+var S={three:{l:"Three.js"},gl:{l:"WebGL"},geo:{l:"Rose geometry"},frame:{l:"First frame"}},el=document.getElementById("diag"),msgs=[];
+function draw(){el.innerHTML="";for(var k in S){var s=S[k],sp=document.createElement("span");sp.textContent=(s.ok===true?"✓ ":s.ok===false?"✗ ":"… ")+s.l+(s.n?" ("+s.n+")":"");el.appendChild(sp)}}
+window.bloomDiag=function(k,ok,n){S[k].ok=ok;S[k].n=n||"";draw()};
+window.bloomFail=function(m,e){var p=document.getElementById("err"),ld=document.getElementById("load");if(ld)ld.style.display="none";
+ msgs.push(m+(e?"\n"+(e.stack||e.message||e):""));p.style.display="flex";p.innerHTML="";
+ var h=document.createElement("div");h.textContent="The studio could not start.";p.appendChild(h);
+ msgs.forEach(function(t){var pr=document.createElement("pre");pr.textContent=t;p.appendChild(pr)});
+ var d=document.createElement("pre");d.textContent=Object.keys(S).map(function(k){return(S[k].ok===true?"OK   ":S[k].ok===false?"FAIL ":"?    ")+S[k].l+(S[k].n?" – "+S[k].n:"")}).join("\n");p.appendChild(d)};
+window.addEventListener("error",function(e){if(e.target&&e.target!==window)return;window.bloomFail("Unexpected error: "+e.message,e.error)});
+window.addEventListener("unhandledrejection",function(e){window.bloomFail("Unhandled promise rejection",e.reason)});
+draw();
+})();
+</script>
+<script>
+window.__start=function(){
+"use strict";
+const T=THREE,V3=T.Vector3,M4=T.Matrix4,UP=new V3(0,1,0);
+const $=id=>document.getElementById(id);
+const fail=window.bloomFail,diag=window.bloomDiag;
+
+/* ---------- utils ---------- */
+const rng=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const lin=(c,a,b,k)=>c.set(a).lerp(new T.Color(b),k);
+function paint(g,hex){const n=g.attributes.position.count,a=new Float32Array(n*3),c=new T.Color(hex).convertSRGBToLinear();for(let i=0;i<n;i++){a[i*3]=c.r;a[i*3+1]=c.g;a[i*3+2]=c.b}g.setAttribute("color",new T.BufferAttribute(a,3))}
+function merge(items){const P=[],C=[],I=[],v=new V3();let off=0;
+ for(const{g,m}of items){const p=g.attributes.position,c=g.attributes.color;
+  for(let k=0;k<p.count;k++){v.fromBufferAttribute(p,k).applyMatrix4(m);P.push(v.x,v.y,v.z);C.push(c.getX(k),c.getY(k),c.getZ(k))}
+  if(g.index){for(let k=0;k<g.index.count;k++)I.push(g.index.getX(k)+off)}else for(let k=0;k<p.count;k++)I.push(k+off);
+  off+=p.count;g.dispose()}
+ const o=new T.BufferGeometry();o.setAttribute("position",new T.Float32BufferAttribute(P,3));o.setAttribute("color",new T.Float32BufferAttribute(C,3));o.setIndex(I);o.computeVertexNormals();return o}
+function grid(nu,nv,fn){const P=[],C=[],I=[];
+ for(let j=0;j<=nv;j++)for(let i=0;i<=nu;i++){const r=fn(-1+2*i/nu,j/nv);P.push(r[0],r[1],r[2]);C.push(r[3],r[4],r[5])}
+ for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const a=j*(nu+1)+i,b=a+nu+1;I.push(a,b,a+1,a+1,b,b+1)}
+ const g=new T.BufferGeometry();g.setAttribute("position",new T.Float32BufferAttribute(P,3));g.setAttribute("color",new T.Float32BufferAttribute(C,3));g.setIndex(I);return g}
+
+/* ---------- petal / leaf geometry ---------- */
+/*PURE_START*/
+const hx=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255),mx=(a,b,t)=>a.map((x,i)=>x+(b[i]-x)*t),sm=x=>(x=Math.min(1,Math.max(0,x)))*x*(3-2*x);
+/* A petal is a sheet wrapped around the flower axis: meridian (r,y) is integrated from an opening angle that bends along its length; lateral angle spans a rounded half-width. */
+function petalData(p,nu,nv){const P=[],C=[],I=[],lo=hx(p.lo),mid=hx("#DA94A8"),hi=hx("#EFBFC9");let r=p.r0,y=p.y0;
+ for(let j=0;j<=nv;j++){const v=j/nv;
+  if(j>0){const a=p.a0+p.k*(j-.5)/nv,ds=p.H/nv;r=Math.max(p.rmin,r+ds*Math.sin(a));y+=ds*Math.cos(a)}
+  const q=v<.55?.4+.6*Math.sin(v/.55*1.5708):Math.sqrt(Math.max(0,1-Math.pow((v-.55)/.45,2)));
+  for(let i=0;i<=nu;i++){const u=-1+2*i/nu,au=Math.abs(u);
+   const ha=Math.min(1.6,p.W*q*(1+p.e*Math.sin(v*4+p.ph)*.08)/Math.max(r,.006));
+   const f=p.f0+p.tw*v+u*ha*(1+p.as*u);
+   const R=r+p.roll*p.H*Math.pow(au,2.2)*v*(.4+v)+p.wv*Math.sin(u*2.6+p.ph)*v*v;
+   const Y=y-.07*p.H*u*u*v*v;
+   P.push(R*Math.cos(f),Y,R*Math.sin(f));
+   const k=Math.min(1,v*.7+au*au*v*.3),c=mx(mx(lo,mid,Math.min(1,k*2)),hi,Math.max(0,k*2-1)*.8),ao=(.62+.38*sm(v*2))*p.ao;
+   C.push(Math.pow(c[0]*ao,2.2),Math.pow(c[1]*ao,2.2),Math.pow(c[2]*ao,2.2))}}
+ for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const a=j*(nu+1)+i,b=a+nu+1;I.push(a,b,a+1,a+1,b,b+1)}
+ return{P,C,I}}
+/* layers: n, r0, dr, rmin, drmin, y0, a0, da, bend, H, dH, W, roll, ao, color, azimuth step */
+const LAYERS=[[4,.0035,.0016,.0015,.001,0,.03,0,-.9,.042,.002,.010,0,.6,"#A3566F",2.4],
+ [6,.0095,.0011,.006,.0009,-.001,.04,0,-.2,.052,.001,.015,0,.72,"#B8667F",1.0472],
+ [8,.0145,.001,.01,.0009,-.003,.12,.01,.28,.056,0,.0185,.05,.82,"#C5748B",.7854],
+ [8,.0185,.001,0,0,-.005,.30,0,.35,.056,0,.0235,.10,.9,"#D0869A",.7854],
+ [7,.020,.001,0,0,-.008,.60,0,.40,.052,0,.030,.12,1,"#D994A6",.8976]];
+function roseData(seed,s){const r=rng(seed),P=[],C=[],I=[],HS=.85;
+ LAYERS.forEach((L,li)=>{for(let i=0;i<L[0];i++){const j=()=>r()-.5;
+  const d=petalData({r0:L[1]+L[2]*i,rmin:L[3]+L[4]*i,y0:L[5],a0:L[6]+L[7]*i+j()*.04,k:L[8],H:(L[9]+L[10]*i)*(1+j()*.08),W:L[11]*(1+j()*.1),roll:L[12],ao:L[13],lo:L[14],
+   f0:li*.5+i*L[15]+j()*.12,tw:j()*.3,as:j()*.3,e:j()*2,ph:r()*6,wv:j()*.0012},s.u,s.v),o=P.length/3;
+  for(let k=0;k<d.P.length;k++)P.push(d.P[k]*HS);for(const c of d.C)C.push(c);for(const x of d.I)I.push(x+o)}});
+ {const o=P.length/3,c=hx("#8E4660").map(x=>Math.pow(x,2.2));for(let a=0;a<=6;a++){const t=a/6,R=.0045*Math.cos(t*1.5708),Y=.027+.009*Math.sin(t*1.5708);for(let b=0;b<=10;b++){const f=b/10*6.2832;P.push(R*Math.cos(f),Y,R*Math.sin(f));C.push(c[0],c[1],c[2])}}
+  for(let a=0;a<6;a++)for(let b=0;b<10;b++){const i=o+a*11+b;I.push(i,i+11,i+1,i+1,i+11,i+12)}}
+ return{P,C,I,layers:LAYERS.map(L=>L[0])}}
+/*PURE_END*/
+function headGeo(seed,s){const d=roseData(seed,s),g=new T.BufferGeometry();
+ g.setAttribute("position",new T.Float32BufferAttribute(d.P,3));g.setAttribute("color",new T.Float32BufferAttribute(d.C,3));g.setIndex(d.I);g.computeVertexNormals();return g}
+function leafGeo(len,wid,s){const c=new T.Color(),a=new T.Color("#8FA88A"),b=new T.Color("#587656");
+ return grid(4,s.v,(u,v)=>{const w=wid*Math.pow(Math.sin(Math.PI*Math.pow(Math.max(v,.001),.62)),.8)*(1+.05*Math.sin(v*40)*v),x=u*w;
+  c.copy(a).lerp(b,Math.abs(u)*.7+v*.2);if(Math.abs(u)<.01)c.lerp(new T.Color("#B7C9B0"),.5);c.convertSRGBToLinear();
+  return[x,len*v,-.5*Math.abs(x)-.3*len*v*v,c.r,c.g,c.b]})}
+
+/* ---------- rose assembly ---------- */
+const mats={petal:new T.MeshStandardMaterial({vertexColors:true,roughness:.68,metalness:0,side:T.DoubleSide,emissive:0x6a2f40,emissiveIntensity:.04}),
+ green:new T.MeshStandardMaterial({vertexColors:true,roughness:.7,metalness:0,side:T.DoubleSide})};
+function greenGeo(curve,clusters,seed,s,leafProto){const r=rng(seed),items=[];
+ const tube=new T.TubeGeometry(curve,22,.0042,7);paint(tube,"#6F8A67");items.push({g:tube,m:new M4()});
+ const end=curve.getPoint(1),q=new T.Quaternion().setFromUnitVectors(UP,curve.getTangent(1));
+ const cal=new T.SphereGeometry(1,10,6);paint(cal,"#6B8A5F");items.push({g:cal,m:new M4().compose(end,q,new V3(.02,.012,.02))});
+ for(let k=0;k<5;k++){const sp=leafGeo(.03,.006,{v:4});items.push({g:sp,m:new M4().compose(end,q,new V3(1,1,1)).multiply(new M4().makeRotationY(k*1.2566)).multiply(new M4().makeRotationX(1.25))})}
+ clusters.forEach((t,ci)=>{const base=curve.getPoint(t),cAz=ci*2.1+r()*2;
+  [0,1,2].forEach(k=>{const az=cAz+(k-1)*.75+(r()-.5)*.2,sz=k==1?1.15:.9;
+   const m=new M4().makeTranslation(base.x,base.y,base.z).multiply(new M4().makeRotationY(az)).multiply(new M4().makeRotationX(1.05+(r()-.5)*.3)).multiply(new M4().makeScale(sz,sz,sz));
+   items.push({g:leafProto[(k+ci)%leafProto.length].clone(),m})})});
+ return merge(items)}
+function makeRose(head,pts,clusters,scale,seed,s,leafProto){
+ const curve=new T.CatmullRomCurve3(pts),end=curve.getPoint(1),tan=curve.getTangent(1),g=new T.Group();
+ const h=new T.Mesh(head,mats.petal);h.position.copy(end).addScaledVector(tan,.004);h.quaternion.setFromUnitVectors(UP,tan);h.rotateY(seed*1.7);h.scale.setScalar(scale);h.castShadow=true;
+ const st=new T.Mesh(greenGeo(curve,clusters,seed,s,leafProto),mats.green);st.castShadow=true;
+ const mk=(n,p)=>{const o=new T.Object3D();o.name=n;o.position.copy(p);return o};
+ g.add(st,h,mk("anchor_base",pts[0]),mk("anchor_head",end),mk("anchor_grip",pts[1]));
+ g.userData.owned=[st.geometry];return g}
+
+function buildAll(q){
+ const s=[{u:7,v:6},{u:10,v:9},{u:14,v:12}][q],ls={v:[5,7,10][q]};
+ const heads=[headGeo(11,s),headGeo(29,s)];
+ const leafProto=[leafGeo(.06,.017,ls),leafGeo(.07,.02,ls),leafGeo(.055,.015,ls)];
+ leafProto.forEach(l=>{});
+ const single=new T.Group(),bouq=new T.Group();
+ single.add(makeRose(heads[0],[new V3(0,0,0),new V3(-.01,.1,.01),new V3(.012,.22,-.012),new V3(.03,.32,.004),new V3(.04,.4,.002)],[.3,.5],1,5,s,leafProto));
+ const grip=.11,hp=[[0,.375,0],[.082,.325,.022],[-.066,.335,.055],[.022,.31,-.082],[-.082,.3,-.033]],sc=[1.1,.95,.92,.9,.88];
+ hp.forEach((h,i)=>{const o=(i-2)*.002;
+  bouq.add(makeRose(heads[i%2],[new V3(o,0,-o),new V3(o*2,grip,o),new V3(h[0]*.38,h[1]*.6,h[2]*.38),new V3(h[0],h[1],h[2])],i>0?[.55]:[],sc[i],3+i*7,s,leafProto))});
+ const groups=[single,bouq,new T.Group()];
+ groups.forEach(gr=>gr.userData.dispose=()=>{gr.traverse(o=>{if(o.userData.owned)o.userData.owned.forEach(g=>g.dispose())})});
+ heads.concat(leafProto).forEach(g=>g.userData.shared=1);
+ groups.heads=heads;groups.leaves=leafProto;return groups}
+const tris=g=>{let n=0;g.traverse(o=>{if(o.isMesh&&o.geometry.index)n+=o.geometry.index.count/3});return n};
+
+/* ---------- scene ---------- */
+let renderer;
+try{renderer=new T.WebGLRenderer({canvas:$("c"),antialias:true,alpha:true,powerPreference:"high-performance"});if(!renderer.getContext())throw new Error("no GL context");diag("gl",true,renderer.capabilities.isWebGL2?"WebGL2":"WebGL1")}catch(e){diag("gl",false);fail("WebGL is not available on this device or browser.",e);return}
+$("c").addEventListener("webglcontextlost",e=>{e.preventDefault();fail("The graphics context was lost. Reload the page.")});
+renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.95;
+renderer.shadowMap.type=T.PCFSoftShadowMap;
+const scene=new T.Scene(),cam=new T.PerspectiveCamera(38,1,.02,5);
+scene.add(new T.HemisphereLight(0xfff1e4,0xc9b8a6,.5));
+const key=new T.DirectionalLight(0xffe0bd,1.15);key.position.set(.6,1,.7);key.shadow.bias=-.0006;key.shadow.normalBias=.002;
+Object.assign(key.shadow.camera,{left:-.4,right:.4,top:.6,bottom:-.2,near:.1,far:3});key.target.position.set(0,.2,0);
+const fill=new T.DirectionalLight(0xffd9e2,.35);fill.position.set(-.8,.4,.5);
+const rim=new T.DirectionalLight(0xfff0f5,.6);rim.position.set(-.3,.7,-.9);
+scene.add(key,key.target,fill,rim);
+const ped=new T.Mesh(new T.CylinderGeometry(.17,.18,.02,48),new T.MeshStandardMaterial({color:0xE9D8BC,roughness:.8}));
+ped.position.y=-.01;ped.receiveShadow=true;scene.add(ped);
+const ring=new T.Mesh(new T.TorusGeometry(.172,.002,6,64),new T.MeshStandardMaterial({color:0xD9BC91,roughness:.5}));
+ring.rotation.x=Math.PI/2;scene.add(ring);
+
+/* ---------- state / camera ---------- */
+const QN=["Low","Medium","High"],PR=[1,1.5,2];
+const st={mode:2,q:1,auto:false,pr:1,theta:.6,phi:1.3,r:.95,tgt:new V3(.03,.2,0)};
+const VIEW=[{r:.42,y:.34,x:.04},{r:.62,y:.25,x:0},{r:.62,y:.25,x:0}];
+let groups=null;
+function resetView(){const v=VIEW[st.mode];st.theta=.6;st.phi=1.3;st.r=v.r*(cam.fov>45?1:1.35);st.tgt.set(v.x,v.y,0)}
+function applyCam(){st.phi=Math.min(1.58,Math.max(.2,st.phi));st.r=Math.min(1.4,Math.max(.16,st.r));
+ cam.position.set(st.tgt.x+st.r*Math.sin(st.phi)*Math.sin(st.theta),st.tgt.y+st.r*Math.cos(st.phi),st.tgt.z+st.r*Math.sin(st.phi)*Math.cos(st.theta));cam.lookAt(st.tgt)}
+const cv=$("c"),ptrs=new Map();let pinch=0;
+cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);pinch=0});
+cv.addEventListener("pointermove",e=>{const p=ptrs.get(e.pointerId);if(!p)return;
+ if(ptrs.size==1){st.theta-=(e.clientX-p[0])*.008;st.phi-=(e.clientY-p[1])*.008;p[0]=e.clientX;p[1]=e.clientY}
+ else if(ptrs.size==2){p[0]=e.clientX;p[1]=e.clientY;const[a,b]=[...ptrs.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pinch)st.r*=pinch/d;pinch=d}});
+const up=e=>{ptrs.delete(e.pointerId);pinch=0};cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
+cv.addEventListener("wheel",e=>{e.preventDefault();st.r*=1+e.deltaY*.001},{passive:false});
+
+/* ---------- quality / build ---------- */
+function rebuild(){
+ if(groups){groups[2].children.slice().forEach(c=>{groups[2].remove(c);disposeObj(c)});groups.forEach(g=>{scene.remove(g);g.userData.dispose()});groups.heads.concat(groups.leaves).forEach(g=>g.dispose())}
+ groups=buildAll(st.q);groups.forEach(g=>scene.add(g));inst.clear();setMode(st.mode,true);studioRefresh();
+ let bad=0,n=0;groups.forEach(g=>g.traverse(o=>{if(o.isMesh){n++;const p=o.geometry.attributes.position.array;for(let i=0;i<p.length;i++)if(!isFinite(p[i])){bad++;break}}}));
+ diag("geo",!bad&&n>0,bad?bad+" meshes with invalid vertices":n+" meshes, "+Math.round(tris(groups[0]))+" tris");
+ if(bad||!n)fail("Rose geometry is invalid ("+bad+" bad meshes of "+n+").")}
+function setQuality(){st.pr=PR[st.q];renderer.setPixelRatio(Math.min(devicePixelRatio||1,st.pr));
+ renderer.shadowMap.enabled=st.q>0;key.castShadow=st.q>0;const sz=st.q==2?2048:1024;
+ if(key.shadow.map){key.shadow.map.dispose();key.shadow.map=null}key.shadow.mapSize.set(sz,sz);
+ mats.petal.needsUpdate=mats.green.needsUpdate=ped.material.needsUpdate=true;resize()}
+function setMode(m,force){if(m===st.mode&&!force)return;if(m!==st.mode){st.mode=m;resetView()}
+ groups[0].visible=m==0;groups[1].visible=m==1;groups[2].visible=m==2;
+ $("mSingle").setAttribute("aria-pressed",m==0);$("mBouq").setAttribute("aria-pressed",m==1)}
+function resize(){const w=Math.max(1,cv.clientWidth||innerWidth),h=Math.max(1,cv.clientHeight||innerHeight);renderer.setSize(w,h,false);cam.aspect=w/h;
+ cam.fov=w/h<.8?50:38;cam.updateProjectionMatrix()}
+addEventListener("resize",resize);if(window.ResizeObserver)new ResizeObserver(resize).observe(cv);
+
+$("mSingle").onclick=()=>setMode(0);$("mBouq").onclick=()=>setMode(1);
+$("bAuto").onclick=e=>{st.auto=!st.auto;e.currentTarget.setAttribute("aria-pressed",st.auto)};
+$("bReset").onclick=resetView;
+$("bQ").onclick=e=>{st.q=(st.q+1)%3;e.currentTarget.textContent="Quality: "+QN[st.q];setQuality();rebuild()};
+$("bPerf").onclick=e=>{const on=e.currentTarget.getAttribute("aria-pressed")!="true";e.currentTarget.setAttribute("aria-pressed",on);$("stats").hidden=!on;$("diag").hidden=!on};
+
+/* ---------- loop + measured perf ---------- */
+let last=performance.now(),acc=0,frames=0,fps=0,calls=0,low=0;
+function updStats(){const t=Math.round(tris(groups[st.mode]));
+ $("stats").innerHTML=["Single Rose","Mini Bouquet","Studio"][st.mode]+" · ~"+(t/1000).toFixed(1)+"k triangles (head+stem+leaves)<br>Draw calls "+calls+" · "+fps+" fps · pixel ratio "+Math.min(devicePixelRatio||1,st.pr).toFixed(2)+"<small>Measured live on this device, not a target.</small>"}
+let firstDone=false;
+function frame(now){try{step(now)}catch(e){fail("Render loop error",e);return}requestAnimationFrame(frame)}
+function step(now){const dt=Math.min(.1,(now-last)/1000);last=now;
+ if(st.auto&&!ptrs.size)st.theta+=dt*.35;
+ applyCam();renderer.render(scene,cam);calls=renderer.info.render.calls;
+ if(!firstDone){firstDone=true;const tr=renderer.info.render.triangles;diag("frame",tr>0,tr+" tris drawn");$("load").style.display="none";if(!(tr>0))fail("First frame drew no triangles (geometry culled or invisible).")}
+ acc+=dt;frames++;
+ if(acc>=.5){fps=Math.round(frames/acc);acc=0;frames=0;
+  low=fps<24?low+1:0;if(low>=3&&st.pr>1){st.pr=Math.max(1,st.pr-.25);renderer.setPixelRatio(Math.min(devicePixelRatio||1,st.pr));resize();low=0}
+  updStats()}}
+/* ===== Bouquet Studio (P1) ===== */
+const COLS={blush:["Blush",0xffffff],dusty:["Dusty",0xe0a3b3],cream:["Cream",0xfff0d0],burgundy:["Burgundy",0xb0505f]};
+const CATALOG=[{id:"rose-proc",name:"Garden Rose (procedural fallback)",sci:"Rosa × hybrida",cat:"Roses & Romantic Classics",colors:Object.keys(COLS),fmt:"procedural",origin:"builtin",headR:.05,tris:"~6k",status:"available",note:"built-in fallback, not an external model",lic:"Original code",anchors:{head:[0,.4,0],base:[0,0,0],grip:[0,.11,0]}}];
+[["peony","Peony","Paeonia lactiflora","Elegant Blooms"],["ranunculus","Ranunculus","Ranunculus asiaticus","Soft Garden Flowers"],["tulip","Tulip","Tulipa gesneriana","Elegant Blooms"],["lisianthus","Lisianthus","Eustoma grandiflorum","Soft Garden Flowers"],["gypsophila","Baby's Breath","Gypsophila paniculata","Fillers"],["eucalyptus","Eucalyptus","Eucalyptus cinerea","Foliage"]].forEach(([id,name,sci,cat])=>CATALOG.push({id,name,sci,cat,fmt:"glb",origin:"planned",src:null,status:"missing",headR:.05,colors:null,lic:"n/a"}));
+const MAXN=30,KEY="bloom.design.v1",inst=new Map(),cmat=new Map(),studioG=()=>groups[2];
+const ray=new T.Raycaster(),ndc=new T.Vector2(),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let bq={seed:1,full:1,items:[]},sel=null,nid=1,hist=[],hix=0,mode="simple",tab=null,flt={q:"",cat:"",av:""},armed=null;
+const cur=()=>bq.items.find(i=>i.id===sel),asset=id=>CATALOG.find(a=>a.id===id);
+function toast(m){const t=$("toast");t.textContent=m;t.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.opacity=0,3200)}
+const selR=new T.Mesh(new T.TorusGeometry(.07,.003,6,36),new T.MeshBasicMaterial({color:0x879B83,depthTest:false}));selR.rotation.x=Math.PI/2;selR.renderOrder=9;selR.raycast=()=>{};scene.add(selR);
+function matFor(c){if(!cmat.has(c)){const m=mats.petal.clone();m.color.setHex((COLS[c]||COLS.blush)[1]);cmat.set(c,m)}return cmat.get(c)}
+function place(it,i){const A=asset(it.a)||{headR:.05},rr=rng(bq.seed*977+i*31),R=A.headR*1.55*bq.full,rad=i?R*Math.sqrt(i)*.95:0,ang=i*2.39996+bq.seed*.7+(rr()-.5)*.35;
+ it.x=rad*Math.cos(ang)+(rr()-.5)*.008;it.z=rad*Math.sin(ang)+(rr()-.5)*.008;it.y=Math.max(.2,.385-rad*.5+(rr()-.5)*.014);it.r=rr()*6.28;it.s=i?.92+rr()*.12:1.08}
+const MINSEP=.92,hR=it=>((asset(it.a)||{}).headR||.05)*it.s;
+/* Pushes overlapping head centres apart in the horizontal plane (3D distance >= MINSEP*(rA+rB)); only items in mv move. */
+function relax(mv,iters){const all=bq.items,mvs=new Set(mv),base=new Map(mv.map(it=>[it,{y:it.y,r:Math.hypot(it.x,it.z)}]));
+ const lift=it=>{const b=base.get(it);if(b)it.y=Math.min(.46,Math.max(.2,b.y-.5*(Math.hypot(it.x,it.z)-b.r)))};
+ for(let k=0;k<(iters||60);k++){let moved=0;
+  for(let a=0;a<all.length;a++)for(let b=a+1;b<all.length;b++){const A=all[a],B=all[b],ma=mvs.has(A),mb=mvs.has(B);if(!ma&&!mb)continue;
+   const dx=B.x-A.x,dz=B.z-A.z,dy=B.y-A.y,H=Math.hypot(dx,dz),m=MINSEP*(hR(A)+hR(B)),need=Math.sqrt(Math.max(0,m*m-dy*dy))-H;if(!(need>1e-4))continue;
+   let ux,uz;if(H>1e-5){ux=dx/H;uz=dz/H}else{const t=(a*7+b*13)*1.7;ux=Math.cos(t);uz=Math.sin(t)}
+   const fa=ma&&mb?.5:ma?1:0,fb=ma&&mb?.5:mb?1:0;A.x-=ux*need*fa;A.z-=uz*need*fa;B.x+=ux*need*fb;B.z+=uz*need*fb;moved++}
+  mv.forEach(lift);if(!moved)break}
+ mv.forEach(it=>{it.x=Math.round(Math.max(-.65,Math.min(.65,it.x))*1e4)/1e4;it.z=Math.round(Math.max(-.65,Math.min(.65,it.z))*1e4)/1e4;lift(it);it.y=Math.round(it.y*1e4)/1e4})}
+const autoArrange=()=>{bq.items.forEach((it,i)=>place(it,i));relax(bq.items,80)};
+function makeInst(it){const A=asset(it.a);if(!A||A.status!=="available")return null;let g;
+ if(A.fmt==="procedural"){const hp=new V3(it.x,it.y,it.z);
+  g=makeRose(groups.heads[it.n%2],[new V3(it.x*.15,0,it.z*.15),new V3(it.x*.2,.11,it.z*.2),new V3(it.x*.4,it.y*.6,it.z*.4),hp],it.n%3==0?[.55]:[],it.s,it.n*5+3,{v:6},groups.leaves);
+  g.children[1].rotateY(it.r);g.children[1].material=matFor(it.c)}
+ else if(A.headOnly){const hp=new V3(it.x,it.y,it.z);
+  g=makeRose(groups.heads[0],[new V3(it.x*.15,0,it.z*.15),new V3(it.x*.2,.11,it.z*.2),new V3(it.x*.4,it.y*.6,it.z*.4),hp],it.n%3==0?[.55]:[],1,it.n*5+3,{v:6},groups.leaves);
+  const hm=g.children[1];g.remove(hm);const hg=new T.Group(),p=new T.Group(),m=A.raw.clone(true);m.position.set(-A.cx,-A.by,-A.cz);p.add(m);p.scale.setScalar(A.k*it.s);hg.add(p);
+  hg.position.copy(hm.position);hg.quaternion.copy(hm.quaternion);hg.rotateY(it.r+A.adj.rot);g.add(hg)}
+ else{g=new T.Group();const p=new T.Group(),m=A.raw.clone(true);m.position.set(-A.cx,-A.by,-A.cz);p.add(m);
+  const yaw=it.r+A.adj.rot;p.scale.setScalar(A.k*A.adj.sc);p.rotation.y=yaw;p.position.y=A.adj.off;g.add(p);
+  /* Head-anchored pose: changes in X/Z, height, scale or rotation keep the actual model head at the selection marker.
+     For assets without a head anchor, the top-centre of the bounding box is an explicitly approximate fallback. */
+  const offset=new V3(...A.headDelta).multiplyScalar(A.k*A.adj.sc).applyAxisAngle(UP,yaw);
+  const desired=new V3(it.x*.85,it.y,it.z*.85);
+  if(offset.lengthSq()<1e-10)throw new Error("Invalid head anchor for "+A.id);
+  g.quaternion.setFromUnitVectors(offset.clone().normalize(),desired.normalize());
+  g.scale.setScalar(it.s);
+  g.position.set(it.x,it.y,it.z).sub(offset.add(new V3(0,A.adj.off,0)).applyQuaternion(g.quaternion).multiplyScalar(it.s));
+  g.userData.owned=[]}
+ g.userData.id=it.id;return g}
+const sig=it=>[it.a,it.c,it.n,it.x,it.y,it.z,it.r,it.s].join("|");
+function disposeObj(o){(o.userData.owned||[]).forEach(x=>x.dispose())}
+function drop(id){const e=inst.get(id);if(e){studioG().remove(e.o);disposeObj(e.o);inst.delete(id)}}
+/* Reconcile the studio group with bq.items: every logical item owns exactly one object. force=true rebuilds all (asset adjust). */
+function syncScene(force){if(force)[...inst.keys()].forEach(drop);
+ const ids=new Set(bq.items.map(i=>i.id));[...inst.keys()].forEach(id=>{if(!ids.has(id))drop(id)});
+ bq.items.forEach(it=>{const k=sig(it),e=inst.get(it.id);if(e&&e.s===k)return;if(e)drop(it.id);const g=makeInst(it);if(g){studioG().add(g);inst.set(it.id,{o:g,s:k})}});
+ const live=new Set([...inst.values()].map(e=>e.o));studioG().children.slice().forEach(c=>{if(!live.has(c)){studioG().remove(c);disposeObj(c)}});syncRing()}
+function updateOne(it){syncScene()}
+function studioRefresh(force){syncScene(force)}
+function syncRing(){const it=cur();selR.visible=!!it&&st.mode===2&&!document.body.classList.contains("pv");if(it)selR.position.set(it.x,it.y,it.z)}
+const snap=()=>JSON.stringify(bq);
+function commit(){const k=snap();if(k!==hist[hix]){hist=hist.slice(0,hix+1);hist.push(k);if(hist.length>60)hist.shift();hix=hist.length-1}studioRefresh();updUI()}
+function restore(j){bq=JSON.parse(j);nid=Math.max(nid,bq.items.reduce((m,i)=>Math.max(m,i.id),0)+1);if(!cur())sel=null;studioRefresh();updUI()}
+$("bUndo").onclick=()=>{if(hix>0){hix--;restore(hist[hix])}};$("bRedo").onclick=()=>{if(hix<hist.length-1){hix++;restore(hist[hix])}};
+function addFlower(id){const A=asset(id);if(!A||A.status!=="available")return;if(bq.items.length>=MAXN)return toast("Maximum "+MAXN+" flowers");
+ const it={id:nid,n:nid++,a:id,c:A.colors?A.colors[0]:"blush",x:0,y:.36,z:0,r:0,s:1};bq.items.push(it);if(mode==="simple")autoArrange();else{place(it,bq.items.length-1);relax([it])}sel=it.id;commit()}
+function removeSel(){if(!sel)return toast("Tap a flower first");bq.items=bq.items.filter(i=>i.id!==sel);sel=null;commit()}
+/* tap-to-select (does not fire after orbit/pinch drags) */
+let dn=null;cv.addEventListener("pointerdown",e=>{dn=ptrs.size>1?null:[e.clientX,e.clientY,performance.now()]});
+cv.addEventListener("pointerup",e=>{if(!dn||st.mode!==2)return;if(Math.hypot(e.clientX-dn[0],e.clientY-dn[1])<8&&performance.now()-dn[2]<500){const r=cv.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ndc,cam);
+ const hit=ray.intersectObjects(studioG().children,true)[0];let id=null;if(hit){let o=hit.object;while(o&&o.userData.id==null)o=o.parent;if(o)id=o.userData.id}sel=id;updUI()}dn=null});
+/* storage */
+function idb(m,key,val){return new Promise((ok,no)=>{try{const q=indexedDB.open("bloom",1);q.onupgradeneeded=()=>q.result.createObjectStore("glb");q.onerror=()=>no(q.error);q.onsuccess=()=>{const s=q.result.transaction("glb",m==="get"?"readonly":"readwrite").objectStore("glb"),r=m==="get"?s.get(key):s.put(val,key);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}}catch(e){no(e)}})}
+const toObj=()=>({v:1,meta:{app:"The Little Bloom Atelier",saved:new Date().toISOString()},seed:bq.seed,full:bq.full,items:bq.items,assets:[...new Set(bq.items.map(i=>i.a))]});
+function validate(o){if(!o||o.v!==1||!Array.isArray(o.items))throw new Error("Not a compatible Little Bloom design (schema v1 required).");if(o.items.length>MAXN)throw new Error("Design has more than "+MAXN+" flowers.");
+ o.items.forEach(i=>{for(const k of["x","y","z","r","s"])if(!isFinite(i[k]))throw new Error("Invalid transform values.");if(typeof i.a!=="string")throw new Error("Invalid flower entry.");if(Math.abs(i.x)>.8||Math.abs(i.z)>.8||i.y<0||i.y>.8||!(i.s>0&&i.s<=3))throw new Error("Transform values out of range.")});return o}
+async function applyDesign(o){validate(o);const miss=[];await manifestReady;
+ for(const id of new Set(o.items.map(i=>i.a)))if(!asset(id)||asset(id).status!=="available"){let ok=false;if(id.startsWith("imp-")){try{const r=await idb("get",id);if(r){CATALOG.push(await parseGLB(r.buf,r.name,id));ok=true}}catch(e){}}if(!ok)miss.push(id)}
+ const its=o.items.filter(i=>!miss.includes(i.a));bq={seed:(o.seed|0)||1,full:Math.min(1.6,Math.max(.7,+o.full||1)),items:its.map((i,n)=>({id:n+1,n:(Number.isFinite(+i.n)&&+i.n>=0)?Math.floor(+i.n):n+1,a:i.a,c:String(i.c||"blush"),x:+i.x,y:+i.y,z:+i.z,r:+i.r,s:+i.s}))};nid=Math.max(nid,its.length+1);sel=null;commit();
+ toast(miss.length?"Loaded. "+miss.length+" model(s) missing: reimport the GLB file.":"Design loaded")}
+const TEXK=["map","normalMap","roughnessMap","metalnessMap","aoMap","emissiveMap","alphaMap"];
+function eachTex(raw,f){const seen=new Set();raw.traverse(o=>{if(!o.isMesh)return;[].concat(o.material).forEach(m=>{if(m)TEXK.forEach(k=>{const t=m[k];if(t&&!seen.has(t.uuid)){seen.add(t.uuid);f(t)}})})})}
+function texMB(raw){let px=0;eachTex(raw,t=>{const im=t.image;if(im&&im.width)px+=im.width*im.height});return Math.round(px*4*1.33/1048576*10)/10}
+/* Downscale oversized textures once at load (power-of-two, shared by every instance). Failure leaves the original texture. */
+function capTex(raw,max){eachTex(raw,t=>{try{const im=t.image;if(!im||!im.width||Math.max(im.width,im.height)<=max)return;const f=max/Math.max(im.width,im.height),p2=v=>Math.max(1,Math.pow(2,Math.floor(Math.log2(v*f)))),c=document.createElement("canvas");c.width=p2(im.width);c.height=p2(im.height);c.getContext("2d").drawImage(im,0,0,c.width,c.height);t.image=c;t.needsUpdate=true}catch(e){}})}
+/* meta (optional manifest fields): kind "head"|"full", up "y"|"z", anchors{head,base} in model units after up-axis fix, head_radius_m, max_texture_px, license{name} */
+function parseGLB(buf,name,id,meta){meta=meta||{};return new Promise((ok,no)=>{if(!T.GLTFLoader)return no(new Error("GLTFLoader did not load (check connection)."));
+ new T.GLTFLoader().parse(buf,"",g=>{try{const raw=g.scene;if(meta.up==="z")raw.rotation.x=-Math.PI/2;raw.updateMatrixWorld(true);
+  const b=new T.Box3().setFromObject(raw),sz=b.getSize(new V3()),c=b.getCenter(new V3());if(!(sz.y>0)||!isFinite(sz.y))throw new Error("Model has no usable height.");
+  let tr=0,mesh=0,skinned=false;raw.traverse(o=>{if(o.isSkinnedMesh)skinned=true;if(o.isMesh){mesh++;o.castShadow=true;tr+=o.geometry.index?o.geometry.index.count/3:o.geometry.attributes.position.count/3}});if(!mesh)throw new Error("Model contains no meshes.");
+  if(skinned)throw new Error("Skinned meshes are not supported yet: ordinary scene.clone(true) does not safely clone skeleton bindings.");
+  if(meta.max_texture_px)capTex(raw,meta.max_texture_px);
+  const an=meta.anchors||{},hd=an.head,bs=an.base,only=meta.kind==="head";let k,cx=c.x,cz=c.z,by=b.min.y,hr,stem=0,approx=true;
+  if(bs){cx=bs[0];by=bs[1];cz=bs[2]}
+  if(only){hr=meta.head_radius_m||.05;k=2*hr/Math.max(sz.x,sz.z,1e-6);approx=!bs}
+  else if(hd&&bs){const h=hd[1]-bs[1];if(!(h>0))throw new Error("Head anchor must be above base anchor.");k=.38/h;approx=false;stem=h*k;hr=meta.head_radius_m||Math.min(.08,Math.max(.03,Math.max(sz.x,sz.z)*k*.3))}
+  else{k=.4/sz.y;stem=.4;hr=meta.head_radius_m||Math.min(.08,Math.max(.03,Math.max(sz.x,sz.z)*k*.3))}
+  const headAnchor=hd||[c.x,b.max.y,c.z];const headDelta=[headAnchor[0]-cx,headAnchor[1]-by,headAnchor[2]-cz];
+  if(headDelta.some(v=>!Number.isFinite(v))||Math.hypot(...headDelta)<1e-8)throw new Error("Head anchor is invalid or coincides with base anchor.");
+  ok({id,name,sci:meta.sci||"",cat:meta.cat||"Imported",fmt:"glb",status:"available",colors:null,headR:hr,tris:Math.round(tr),meshes:mesh,texMB:texMB(raw),raw,k,cx,cz,by,headDelta,adj:{sc:1,rot:0,off:0},approx,headOnly:only,stemLen:Math.round(stem*1e3)/1e3,
+   dims:[sz.x,sz.y,sz.z].map(v=>Math.round(v*1e3)/1e3),lic:meta.license?meta.license.name:"User-supplied",note:only?"head only; stem is procedural":approx?"approximate anchors (bounding box)":"explicit anchors"})}catch(e){no(e)}},no)})}
+/* ---- manifest-driven asset pipeline: assets/manifest.json (relative path, GitHub Pages friendly) ---- */
+const assetCache=new Map();let manifestInfo="Asset manifest: loading…";
+function checkEntry(e){if(!e||typeof e.id!=="string"||!/^[a-z0-9-]+$/.test(e.id))return"bad id";for(const k of["name","sci","cat"])if(typeof e[k]!=="string"||!e[k].trim())return"missing "+k;
+ if(e.kind!==undefined&&!(["head","full"].includes(e.kind)))return"kind must be head or full";
+ if(e.up!==undefined&&!(["y","z"].includes(e.up)))return"up must be y or z";
+ if(e.anchors){if(typeof e.anchors!=="object")return"anchors must be an object";
+  for(const k of["head","base"])if(e.anchors[k]!==undefined&&(!Array.isArray(e.anchors[k])||e.anchors[k].length!==3||!e.anchors[k].every(Number.isFinite)))return"invalid "+k+" anchor"}
+ if(e.head_radius_m!==undefined&&(!Number.isFinite(e.head_radius_m)||e.head_radius_m<=0||e.head_radius_m>.2))return"invalid head radius";
+ if(e.max_texture_px!==undefined&&(!Number.isInteger(e.max_texture_px)||e.max_texture_px<128||e.max_texture_px>4096))return"invalid texture limit";
+ if(e.file){if(typeof e.file!=="string"||/^[a-z]+:|^[/\\]|\.\.|\\|[?#]/i.test(e.file)||!/\.glb$/i.test(e.file))return"file must be a safe relative .glb path";
+  const l=e.license;if(!l||!l.name||!/^https:\/\//.test(l.source_url||"")||typeof l.attribution_required!=="boolean"||!e.author)return"license, HTTPS source_url, attribution_required and author are required for installed models"}return""}
+function loadAsset(E){if(assetCache.has(E.id))return assetCache.get(E.id);
+ const p=fetch(E.file).then(async r=>{if(!r.ok)throw new Error("HTTP "+r.status+" for "+E.file);
+  if(+r.headers.get("content-length")>25e6)throw new Error("Model exceeds 25 MB mobile import budget");
+  const buf=await r.arrayBuffer();if(buf.byteLength>25e6)throw new Error("Model exceeds 25 MB mobile import budget");return buf}).then(buf=>parseGLB(buf,E.name,E.id,E)).then(P=>{Object.assign(E,P,{status:"available",err:null});return E}).catch(e=>{E.status="failed";E.err=String(e&&e.message||e);return E});
+ assetCache.set(E.id,p);return p}
+const manifestReady=(async()=>{try{const r=await fetch("assets/manifest.json",{cache:"no-cache"});if(!r.ok)throw new Error("HTTP "+r.status);const M=await r.json();if(!M||M.schema!==1||!Array.isArray(M.assets))throw new Error("unsupported manifest schema");
+  const jobs=[],seenIds=new Set();let bad=0;for(const e of M.assets){const er=checkEntry(e),dup=e&&seenIds.has(e.id);if(er||dup){bad++;console.warn("manifest entry rejected:",e&&e.id,dup?"duplicate id":er);continue}seenIds.add(e.id);
+   const i=CATALOG.findIndex(a=>a.id===e.id);if(i>=0&&CATALOG[i].fmt==="procedural")continue;
+   const E=Object.assign({fmt:"glb",colors:null,headR:.05,adj:{sc:1,rot:0,off:0},origin:"manifest",status:e.file?"loading":"missing"},e);if(i>=0)CATALOG[i]=E;else CATALOG.push(E);if(e.file)jobs.push(loadAsset(E))}
+  manifestInfo="Asset manifest: "+M.assets.length+" entries"+(bad?", "+bad+" rejected":"");updUI();await Promise.all(jobs);
+   // Showcase exactly one real rose in the untouched starter bouquet; never overwrite user edits or saved designs.
+   if(!/[?&]demo=0(?:&|$)/.test(location.search)&&hist.length===1&&hix===0&&bq.items.length===5&&bq.items.every(i=>i.a==="rose-proc")){
+     const real=CATALOG.find(a=>a.id==="rose-sym-5d4ad32"&&a.status==="available");
+     if(real){bq.items[0].a=real.id;autoArrange();hist=[snap()];hix=0;studioRefresh()}
+   }
+   updUI()}
+ catch(e){manifestInfo="No asset manifest ("+(e&&e.message||e)+"). Built-in fallback only.";updUI()}})();
+async function importGLB(f){try{if(!/\.glb$/i.test(f.name))throw new Error("Choose a .glb file.");if(f.size>25e6)throw new Error("File is larger than 25 MB.");toast("Loading "+f.name+"…");
+ const buf=await f.arrayBuffer(),id="imp-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7),A=await parseGLB(buf,f.name,id);CATALOG.push(A);idb("put",id,{name:f.name,buf}).catch(()=>toast("Model kept in memory only (storage unavailable)."));toast("Imported "+f.name+". Add it from Flowers.");tab="flowers";updUI()}catch(e){toast("Import failed: "+(e.message||e))}}
+/* UI */
+const sl=(k,l,a,b,s,v)=>`<label>${l}<input type=range data-k="${k}" min=${a} max=${b} step=${s} value=${v}></label>`;
+function panel(){const p=$("panel");if(!tab||tab==="preview"){p.hidden=true;return}p.hidden=false;const it=cur();let h="";
+ if(tab==="flowers"){const cats=[...new Set(CATALOG.map(a=>a.cat))];
+  h+=`<div class=r><input type=text id=fq placeholder="Search" value="${esc(flt.q)}" style="flex:2"><select id=fc><option value="">All categories${cats.map(c=>`<option ${c===flt.cat?"selected":""}>${esc(c)}`).join("")}</select><select id=fa>${[["","Any status"],["available","Available"],["missing","Not installed"]].map(a=>`<option value="${a[0]}" ${a[0]===flt.av?"selected":""}>${a[1]}`).join("")}</select></div>`;
+  CATALOG.filter(a=>(!flt.q||(a.name+a.sci).toLowerCase().includes(flt.q.toLowerCase()))&&(!flt.cat||a.cat===flt.cat)&&(!flt.av||a.status===flt.av)).forEach(a=>{h+=`<div class=r><div style="flex:1"><b>${esc(a.name)}</b><br><small>${esc(a.sci||a.cat)} · ${a.status==="available"?"installed":a.status==="loading"?"loading…":a.status==="failed"?"failed: "+esc(a.err||"unknown"):"planned, not installed"}${a.note?" · "+esc(a.note):""}${a.lic&&a.lic!=="n/a"?" · "+esc(a.lic):""}${a.license&&a.license.attribution_required?" · attribution: "+esc(a.author||""):""}</small>${a.license&&/^https:\/\//.test(a.license.source_url||"")?`<a class="asset-source" href="${esc(a.license.source_url)}" target="_blank" rel="noopener noreferrer">View asset source</a>`:""}</div><button data-add="${a.id}" ${a.status!=="available"?"disabled":""} style="flex:0 0 64px">Add</button></div>`});
+  {const n=f=>CATALOG.filter(f).length,ext=n(a=>a.status==="available"&&a.origin==="manifest"),imp=n(a=>a.status==="available"&&a.cat==="Imported"),pl=n(a=>a.status==="missing"),fl=n(a=>a.status==="failed");h+=`<small>${ext} loaded external · ${imp} imported · 1 built-in fallback · ${pl} planned${fl?" · "+fl+" failed":""}. ${esc(manifestInfo)}. Import GLB files under Save.</small>`;const cr=CATALOG.filter(a=>a.status==="available"&&a.license&&a.license.attribution_required);if(cr.length)h+=`<small>Credits: ${cr.map(a=>esc(a.name)+" by "+esc(a.author)+" ("+esc(a.license.name)+(a.modified?", modified":"")+")").join("; ")}</small>`}}
+ else if(tab==="arrange"){h+=`<div class=r><button data-m="simple" aria-pressed="${mode==="simple"}">Simple</button><button data-m="adv" aria-pressed="${mode==="adv"}">Advanced</button></div><div>${bq.items.length}/${MAXN} flowers · ${it?"Selected #"+it.id+" "+esc(asset(it.a).name):"Tap a flower to select"}</div>`;
+  if(mode==="simple")h+=`<div class=r><button data-a="dup">+1 same</button><button data-a="del">Remove</button></div><div class=r><button data-a="auto">Auto Arrange</button><button data-a="seed">New seed (${bq.seed})</button></div><label>Fullness<input type=range id=fu min=.7 max=1.6 step=.05 value=${bq.full}></label>`;
+  else if(it)h+=sl("x","Left / right",-.65,.65,.002,it.x)+sl("z","Front / back",-.65,.65,.002,it.z)+sl("y","Height",.2,.46,.002,it.y)+sl("r","Rotation",0,6.28,.05,it.r)+sl("s","Scale",.6,1.5,.02,it.s)+`<div class=r><button data-a="rst">Reset flower</button><button data-a="del">Remove</button></div>`;else h+="<small>Select a flower to edit it.</small>"}
+ else if(tab==="style"){const A=it&&asset(it.a);h+=A&&A.colors?`<div class=r>${A.colors.map(c=>`<button data-col="${c}" aria-pressed="${it.c===c}">${COLS[c][0]}</button>`).join("")}</div><div class=r><button data-a="colall">Apply this color to all roses</button></div>`:"<small>Select a flower with color variants (the procedural rose). Imported models keep their own colors.</small>"}
+ else if(tab==="save"){const L=CATALOG.filter(a=>a.approx).pop();h+=`<div class=r><button data-s="save">Save</button><button data-s="load">${armed==="load"?"Tap to confirm":"Load"}</button><button data-s="new">${armed==="new"?"Tap to confirm":"New"}</button></div><div class=r><button data-s="exp">Export JSON</button><button data-s="imp">Import JSON</button></div><textarea id=js rows=3 style="width:100%" placeholder="Exported JSON appears here. Paste JSON and tap Import."></textarea><div class=r><label style="flex:1">Import GLB<input type=file id=gf accept=".glb"></label></div>`;
+  if(L)h+=`<small>${esc(L.name)}: ${L.tris} tris, ${L.note}</small><label>Scale<input type=range data-adj=sc min=.5 max=2 step=.05 value=${L.adj.sc}></label><label>Rotation<input type=range data-adj=rot min=0 max=6.28 step=.05 value=${L.adj.rot}></label><label>Vertical offset<input type=range data-adj=off min=-.1 max=.1 step=.005 value=${L.adj.off}></label>`}
+ p.innerHTML=h}
+function updUI(){panel();syncRing();$("bUndo").disabled=hix<=0;$("bRedo").disabled=hix>=hist.length-1}
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{const t=b.dataset.tab;if(t==="preview"){document.body.classList.add("pv");st.auto=true;$("pvx").hidden=false;syncRing();return}tab=tab===t?null:t;updUI()});
+$("pvx").onclick=()=>{document.body.classList.remove("pv");$("pvx").hidden=true;st.auto=false;$("bAuto").setAttribute("aria-pressed","false");syncRing()};
+const P_=$("panel");
+P_.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const it=cur(),d=b.dataset;
+ if(d.add)addFlower(d.add);else if(d.m){mode=d.m;updUI()}else if(d.col&&it){it.c=d.col;commit()}
+ else if(d.a==="del")removeSel();else if(d.a==="dup"){if(it)addFlower(it.a);else addFlower("rose-proc")}
+ else if(d.a==="auto"){autoArrange();commit()}else if(d.a==="seed"){bq.seed=bq.seed%99+1;autoArrange();commit()}
+ else if(d.a==="rst"&&it){place(it,bq.items.indexOf(it));relax([it]);commit()}
+ else if(d.a==="colall"&&it){bq.items.forEach(i=>{if(asset(i.a).colors)i.c=it.c});commit()}
+ else if(d.s==="save"){try{localStorage.setItem(KEY,JSON.stringify(toObj()));toast("Saved on this device")}catch(x){toast("Save failed: "+x.message)}}
+ else if(d.s==="load"||d.s==="new"){if(armed!==d.s){armed=d.s;updUI();setTimeout(()=>{armed=null},3000);return}armed=null;
+  if(d.s==="new"){bq={seed:1,full:1,items:[]};sel=null;commit()}else{try{const r=localStorage.getItem(KEY);if(!r)return toast("No saved design found");applyDesign(JSON.parse(r)).catch(x=>toast("Load failed: "+x.message))}catch(x){toast("Load failed: "+x.message)}}}
+ else if(d.s==="exp"){const t=JSON.stringify(toObj(),null,1);$("js").value=t;try{navigator.clipboard.writeText(t)}catch(x){}try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"application/json"}));a.download="bouquet.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}catch(x){}toast("JSON ready (copy from the box)")}
+ else if(d.s==="imp"){try{applyDesign(JSON.parse($("js").value)).catch(x=>toast("Import failed: "+x.message))}catch(x){toast("Import failed: invalid JSON")}}});
+P_.addEventListener("input",e=>{const t=e.target,it=cur();if(t.dataset.k&&it){it[t.dataset.k]=+t.value;updateOne(it)}else if(t.dataset.adj){const A=CATALOG.filter(a=>a.approx).pop();A.adj[t.dataset.adj]=+t.value;studioRefresh(true)}});
+P_.addEventListener("change",e=>{const t=e.target;if(t.dataset.k)commit();else if(t.id==="fu"){bq.full=+t.value;autoArrange();commit()}
+ else if(t.id==="fq"){flt.q=t.value;updUI()}else if(t.id==="fc"){flt.cat=t.value;updUI()}else if(t.id==="fa"){flt.av=t.value;updUI()}else if(t.id==="gf"&&t.files[0]){importGLB(t.files[0]);t.value=""}});
+for(let i=0;i<5;i++)bq.items.push({id:nid,n:nid++,a:"rose-proc",c:"blush",x:0,y:.36,z:0,r:0,s:1});autoArrange();hist=[snap()];hix=0;
+
+try{setQuality();resetView();rebuild();requestAnimationFrame(frame)}catch(e){fail("Initialization failed",e)}
+};
+</script>
+<script>
+(function(){
+var urls=[["cdnjs","https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"],["jsDelivr","https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"]],i=0,done=false;
+function next(){if(done)return;if(i>=urls.length){done=true;bloomDiag("three",false,"all sources failed");bloomFail("Three.js could not be downloaded from cdnjs or jsDelivr. This view may block external scripts, or the device is offline. Try opening the page in a normal browser tab or from GitHub Pages.");return}
+ var u=urls[i++],s=document.createElement("script"),t=setTimeout(function(){if(!window.THREE){s.onload=s.onerror=null;next()}},10000);
+ s.onload=function(){clearTimeout(t);if(window.THREE){done=true;bloomDiag("three",true,u[0]+" r"+THREE.REVISION);var g=document.createElement("script"),go=function(){if(go.d)return;go.d=1;try{window.__start()}catch(e){bloomFail("Startup crashed",e)}};g.onload=go;g.onerror=function(){window.__noGLB=1;go()};setTimeout(g.onerror,7000);g.src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js";document.head.appendChild(g)}else next()};
+ s.onerror=function(){clearTimeout(t);s.remove();next()};
+ s.src=u[1];document.head.appendChild(s)}
+next();
+})();
+</script></body></html>

@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "assets": [
+    {
+      "id": "rose-sym-5d4ad32",
+      "name": "Red Rose · Sketchfab (real 3D)",
+      "sci": "Rosa sp.",
+      "cat": "Roses & Romantic Classics",
+      "kind": "full",
+      "up": "y",
+      "file": "assets/models/rose_symension123_mobile.glb",
+      "author": "symension123",
+      "license": {
+        "name": "CC Attribution (exact version unverified)",
+        "source_url": "https://sketchfab.com/3d-models/rose-5d4ad325925c4b4b8a8b4969b367f91a",
+        "attribution_required": true
+      },
+      "max_texture_px": 1024,
+      "head_radius_m": 0.06,
+      "anchors": {
+        "base": [
+          -476.507,
+          -322.741,
+          -17.321
+        ],
+        "head": [
+          -8.821,
+          1342.085,
+          9.821
+        ]
+      },
+      "modified": true,
+      "note": "REAL licensed model · mobile geometry, compact florist proportions, 1024px textures · source attribution required"
+    },
+    {
+      "id": "rose-innerscene-cc0",
+      "name": "Rose with Stem · Innerscene (planned)",
+      "sci": "Rosa sp.",
+      "cat": "Roses & Romantic Classics",
+      "kind": "full",
+      "up": "y",
+      "author": "Innerscene",
+      "license": {
+        "name": "CC0 1.0",
+        "source_url": "https://www.innerscene.com/tools/library/3d-parts/rose-flower-with-stem-b2a45a50",
+        "attribution_required": false
+      },
+      "note": "Not installed; source only."
+    }
+  ]
+}
