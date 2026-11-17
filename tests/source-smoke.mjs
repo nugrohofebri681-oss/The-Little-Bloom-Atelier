@@ -66,3 +66,7 @@ assert.match(html, /function ribbonStrip\(points,width\)/, 'satin loops use curv
 assert.match(html, /const FOLDS=\{classic:/, 'paper silhouettes are available');
 assert.match(html, /for\(const \[name,mesh\] of Object\.entries\(paperMeshes\)\)/, 'one sleeve silhouette is shown at a time');
 assert.match(html, /data-fold=/, 'paper folding selector is present');
+
+assert.match(html, /function updatePaperWidth\(\)/, 'florist paper must adapt to the bouquet spread');
+assert.match(html, /id="diag" hidden/, 'diagnostic UI should be hidden by default');
+assert.match(html, /id="stats" hidden/, 'performance overlay should not obscure preview');
