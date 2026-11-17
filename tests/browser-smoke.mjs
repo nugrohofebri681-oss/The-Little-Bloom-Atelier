@@ -30,7 +30,12 @@ async function runCase(label,options){
     },null,{timeout:65000});
     const error=await page.locator('#err').evaluate(el=>getComputedStyle(el).display);
     assert.notEqual(error,'flex','app startup fatal: '+await page.locator('#err').innerText());
-    assert.match(await page.locator('#diag').innerText(),/First frame/);
+    assert.match(await page.locator('#diag').textContent(),/First frame/);
+    assert.equal(await page.locator('#stats').isVisible(),false,'debug stats must be hidden in the normal editor');
+    await page.locator('#bPerf').click();
+    assert.equal(await page.locator('#stats').isVisible(),true,'Stats button should reveal diagnostics');
+    await page.locator('#bPerf').click();
+    assert.equal(await page.locator('#stats').isVisible(),false,'Stats button must restore clean preview');
     item.steps.push('first WebGL frame');
     await page.locator('[data-tab="flowers"]').click();
     // Keep testing only after manifest fetch and licensed model parse.
@@ -207,7 +212,7 @@ async function runCase(label,options){
     assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('pv')),false);
     item.steps.push('preview / exit');
     await page.screenshot({path:'test-results/'+label+'.png',fullPage:true});
-    item.stats=await page.locator('#stats').innerText();
+    item.stats=await page.locator('#stats').textContent();
 
     // GPU instancing workload: verify draw calls stay nearly flat with 5, 12 and 30 REAL roses.
     // These FPS numbers use SwiftShader software rendering and are NOT Samsung A05 benchmarks.
@@ -230,14 +235,17 @@ async function runCase(label,options){
         await page.locator('[data-tab="arrange"]').click();
         await page.waitForFunction(n=>document.querySelector('#panel')?.innerText.includes(n+'/30 flowers'),count,{timeout:30000});
         await page.waitForTimeout(1300);
-        const stats=await page.locator('#stats').innerText();
+        const stats=await page.locator('#stats').textContent();
         const calls=Number(stats.match(/Draw calls (\d+)/)?.[1]);
         const fps=Number(stats.match(/(\d+) fps/)?.[1]);
         assert.ok(Number.isFinite(calls)&&calls>0,'missing draw-call measurement');
         if(baselineCalls===null)baselineCalls=calls;
         assert.ok(calls<=baselineCalls+6,'draw calls unexpectedly scale with repeated models: '+calls+' > '+baselineCalls);
         assert.equal(await page.locator('#err').evaluate(el=>getComputedStyle(el).display),'none','fatal error during stress');
-        item.bouquetBenchmarks.push({count,calls,fps,stats:stats.replaceAll('\n',' ')});
+        const paperMouthRadius=await page.evaluate(()=>window.__atelierQA().paperMouthRadius);
+        assert.ok(Number.isFinite(paperMouthRadius)&&paperMouthRadius>=.176,'adaptive wrapping must report a valid mouth radius');
+        if(count===30)assert.ok(paperMouthRadius>.38,'large bouquets need a wider paper sleeve: '+paperMouthRadius);
+        item.bouquetBenchmarks.push({count,calls,fps,paperMouthRadius,stats:stats.replaceAll('\n',' ')});
         if(count===30){
           await page.locator('#bReset').click();
           await page.waitForTimeout(700);
