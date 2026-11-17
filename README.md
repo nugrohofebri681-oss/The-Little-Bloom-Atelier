@@ -1,6 +1,6 @@
 # The Little Bloom Atelier 🌹
 
-A mobile-first 3D bouquet atelier, currently in **P2.2 development**.
+A mobile-first 3D bouquet atelier, currently in **P2.2.1 development**.
 
 ## Current build
 
@@ -8,7 +8,7 @@ A mobile-first 3D bouquet atelier, currently in **P2.2 development**.
 - Built-in procedural rose as a fallback.
 - **Rose by symension123**: genuine, converted GLB model with mobile-optimized geometry and textures.
 - Catalog manifest: `assets/manifest.json`.
-- Validation and Android rendering still in progress; this is not yet a production release.
+- P2.2.1 stability: a secondary GLTFLoader CDN mirror, handled clipboard permission rejection, and confirmation controls that reset cleanly.\n- Validation and Android rendering still in progress; this is not yet a production release.
 
 ## Run
 
@@ -16,7 +16,7 @@ Serve this repository through HTTP(S) (e.g. GitHub Pages or a local development 
 
 The app fetches Three.js r128 and GLTFLoader from CDNs, so first load needs internet access.
 
-## Model provenance and credits
+## Verify source and models\n\nWith Node.js 20+ run `node tests/source-smoke.mjs`. It checks inline JavaScript syntax, manifest entries, attribution metadata, installed GLB headers and file lengths. **It does not verify browser rendering, visual quality, or Android FPS.**\n\n## Model provenance and credits
 
 **Rose** — original model by **symension123** on [Sketchfab](https://sketchfab.com/3d-models/rose-5d4ad325925c4b4b8a8b4969b367f91a).
 
