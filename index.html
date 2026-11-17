@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Little Bloom Atelier · P2.3</title>
+<title>The Little Bloom Atelier · P2.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
 <style>
@@ -34,6 +34,14 @@ button:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
 #stats{position:absolute;right:10px;top:calc(env(safe-area-inset-top,0px) + 104px);width:auto;max-width:200px;font-size:10px;padding:4px 8px;text-align:right}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 170px);background:var(--maroon);color:var(--ivory);padding:8px 14px;border-radius:14px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:86%;text-align:center;z-index:6}
 #pvx{position:absolute;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);flex:none;z-index:4}body.pv .dock,body.pv #stats,body.pv #diag{display:none}
+@media (max-width:620px){
+ .tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .tools button{min-width:0;min-height:42px;font-size:12px}
+ .nav button{min-width:0;font-size:11px}
+ #panel{max-height:min(35vh,320px)}
+ #stats{top:calc(env(safe-area-inset-top,0px) + 125px);max-width:155px}
+ #toast{bottom:calc(env(safe-area-inset-bottom,0px) + 210px)}
+}
 </style></head><body>
 <canvas id="c" tabindex="0" aria-label="3D rose viewer"></canvas>
 <div class="top"><h1>The Little Bloom Atelier</h1><p>Create something beautiful, one bloom at a time.</p><div class="credits">3D Rose by <a href="https://sketchfab.com/symension123" target="_blank" rel="noopener noreferrer">symension123</a> · <a href="https://sketchfab.com/3d-models/rose-5d4ad325925c4b4b8a8b4969b367f91a" target="_blank" rel="noopener noreferrer">Sketchfab / CC Attribution</a> · modified</div></div>
@@ -158,7 +166,8 @@ function buildAll(q){
  groups.forEach(gr=>gr.userData.dispose=()=>{gr.traverse(o=>{if(o.userData.owned)o.userData.owned.forEach(g=>g.dispose())})});
  heads.concat(leafProto).forEach(g=>g.userData.shared=1);
  groups.heads=heads;groups.leaves=leafProto;return groups}
-const tris=g=>{let n=0;g.traverse(o=>{if(o.isMesh&&o.geometry.index)n+=o.geometry.index.count/3});return n};
+const tris=(g,all=false)=>{let n=0;(all?g.traverse.bind(g):g.traverseVisible.bind(g))(o=>{if(o.isMesh){const geo=o.geometry;
+ n+=(geo.index?geo.index.count/3:geo.attributes.position.count/3)*(o.isInstancedMesh?o.count:1)}});return n};
 
 /* ---------- scene ---------- */
 let renderer;
@@ -180,8 +189,10 @@ ring.rotation.x=Math.PI/2;scene.add(ring);
 
 /* ---------- state / camera ---------- */
 const portable=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// InstancedMesh uses WebGL2 or the ANGLE instancing extension (fallback keeps ordinary meshes).
+const canInstance=!!(renderer.capabilities.isWebGL2||renderer.extensions.get("ANGLE_instanced_arrays"));
 const QN=["Low","Medium","High"],PR=portable?[1,1.25,1.5]:[1,1.5,2];
-const st={mode:2,q:1,auto:false,pr:1,theta:.6,phi:1.3,r:.95,tgt:new V3(.03,.2,0)};
+const st={mode:2,q:portable?0:1,auto:false,pr:1,theta:.6,phi:1.3,r:.95,tgt:new V3(.03,.2,0)};
 const VIEW=[{r:.42,y:.34,x:.04},{r:.62,y:.25,x:0},{r:.62,y:.25,x:0}];
 let groups=null;
 function resetView(){const v=VIEW[st.mode];st.theta=.6;st.phi=1.3;st.r=v.r*(cam.fov>45?1:1.35);st.tgt.set(v.x,v.y,0)}
@@ -200,7 +211,7 @@ function rebuild(){
  if(groups){groups[2].children.slice().forEach(c=>{groups[2].remove(c);disposeObj(c)});groups.forEach(g=>{scene.remove(g);g.userData.dispose()});groups.heads.concat(groups.leaves).forEach(g=>g.dispose())}
  groups=buildAll(st.q);groups.forEach(g=>scene.add(g));inst.clear();setMode(st.mode,true);studioRefresh();
  let bad=0,n=0;groups.forEach(g=>g.traverse(o=>{if(o.isMesh){n++;const p=o.geometry.attributes.position.array;for(let i=0;i<p.length;i++)if(!isFinite(p[i])){bad++;break}}}));
- diag("geo",!bad&&n>0,bad?bad+" meshes with invalid vertices":n+" meshes, "+Math.round(tris(groups[0]))+" tris");
+ diag("geo",!bad&&n>0,bad?bad+" meshes with invalid vertices":n+" meshes, "+Math.round(tris(groups[0],true))+" tris");
  if(bad||!n)fail("Rose geometry is invalid ("+bad+" bad meshes of "+n+").")}
 function setQuality(){st.pr=PR[st.q];renderer.setPixelRatio(Math.min(devicePixelRatio||1,st.pr));
  renderer.shadowMap.enabled=st.q>0;key.castShadow=st.q>0;const sz=st.q==2?(portable?1024:2048):(portable?512:1024);
@@ -279,15 +290,51 @@ function makeInst(it){const original=asset(it.a),A=original&&original.status==="
   g.scale.setScalar(it.s);
   g.position.set(it.x,it.y,it.z).sub(offset.add(new V3(0,A.adj.off,0)).applyQuaternion(g.quaternion).multiplyScalar(it.s));
   g.userData.owned=[]}
- g.userData.id=it.id;return g}
+ g.userData.id=it.id;
+ // Only complete, rigid imported flowers are grouped; head-only assets keep their procedural stems.
+ g.userData.batchable=A.fmt==="glb"&&!A.headOnly;return g}
 const sig=it=>[it.a,it.c,it.n,it.x,it.y,it.z,it.r,it.s].join("|");
+/* Reuse real GLB geometries as GPU instances: geometry/material buckets share a draw call
+   across every copy of the same flower. Invisible source groups retain ownership/transform,
+   with their own raycast disabled; selection is mapped through instanceId. */
+function syncBatches(){
+ if(!canInstance)return;
+ const root=studioG(),map=root.userData.batchMap||(root.userData.batchMap=new Map()),jobs=new Map();
+ for(const [id,entry] of inst){
+  const g=entry.o;if(!g.userData.batchable)continue;
+  g.updateMatrixWorld(true);g.visible=false;
+  g.traverse(o=>{if(!o.isMesh)return;o.raycast=()=>{};
+   const mat=o.material,key=o.geometry.uuid+"|"+(Array.isArray(mat)?mat.map(m=>m.uuid).join(","):mat.uuid);
+   if(!jobs.has(key))jobs.set(key,{geo:o.geometry,mat,items:[]});
+   jobs.get(key).items.push({id,m:o.matrixWorld.clone()})
+  })
+ }
+ for(const [key,b] of map)if(!jobs.has(key)){b.visible=false;b.count=0}
+ for(const [key,job] of jobs){
+  let b=map.get(key),count=job.items.length;
+  if(!b||b.instanceMatrix.count<count){
+   if(b)root.remove(b);
+   b=new T.InstancedMesh(job.geo,job.mat,Math.max(MAXN,count));
+   b.frustumCulled=false;b.castShadow=true;
+   b.instanceMatrix.setUsage(T.DynamicDrawUsage);
+   root.add(b);map.set(key,b)
+  }
+  b.count=count;b.visible=true;
+  b.userData.itemIds=[];
+  for(let i=0;i<count;i++){b.setMatrixAt(i,job.items[i].m);b.userData.itemIds.push(job.items[i].id)}
+  b.instanceMatrix.needsUpdate=true
+ }
+}
 function disposeObj(o){(o.userData.owned||[]).forEach(x=>x.dispose())}
 function drop(id){const e=inst.get(id);if(e){studioG().remove(e.o);disposeObj(e.o);inst.delete(id)}}
 /* Reconcile the studio group with bq.items: every logical item owns exactly one object. force=true rebuilds all (asset adjust). */
 function syncScene(force){if(force)[...inst.keys()].forEach(drop);
  const ids=new Set(bq.items.map(i=>i.id));[...inst.keys()].forEach(id=>{if(!ids.has(id))drop(id)});
  bq.items.forEach(it=>{const k=sig(it),e=inst.get(it.id);if(e&&e.s===k)return;if(e)drop(it.id);const g=makeInst(it);if(g){studioG().add(g);inst.set(it.id,{o:g,s:k})}});
- const live=new Set([...inst.values()].map(e=>e.o));studioG().children.slice().forEach(c=>{if(!live.has(c)){studioG().remove(c);disposeObj(c)}});syncRing()}
+ const batchMap=studioG().userData.batchMap;
+ const live=new Set([...inst.values()].map(e=>e.o).concat(batchMap?[...batchMap.values()]:[]));
+ studioG().children.slice().forEach(c=>{if(!live.has(c)){studioG().remove(c);disposeObj(c)}});
+ syncBatches();syncRing()}
 function updateOne(it){syncScene()}
 function studioRefresh(force){syncScene(force)}
 function syncRing(){const it=cur();selR.visible=!!it&&st.mode===2&&!document.body.classList.contains("pv");if(it)selR.position.set(it.x,it.y,it.z)}
@@ -301,7 +348,11 @@ function removeSel(){if(!sel)return toast("Tap a flower first");bq.items=bq.item
 /* tap-to-select (does not fire after orbit/pinch drags) */
 let dn=null;cv.addEventListener("pointerdown",e=>{dn=ptrs.size>1?null:[e.clientX,e.clientY,performance.now()]});
 cv.addEventListener("pointerup",e=>{if(!dn||st.mode!==2)return;if(Math.hypot(e.clientX-dn[0],e.clientY-dn[1])<8&&performance.now()-dn[2]<500){const r=cv.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ndc,cam);
- const hit=ray.intersectObjects(studioG().children,true)[0];let id=null;if(hit){let o=hit.object;while(o&&o.userData.id==null)o=o.parent;if(o)id=o.userData.id}sel=id;updUI()}dn=null});
+ const hit=ray.intersectObjects(studioG().children,true)[0];let id=null;
+ if(hit){
+  if(hit.object.isInstancedMesh&&hit.instanceId!==undefined)id=hit.object.userData.itemIds[hit.instanceId]??null;
+  else{let o=hit.object;while(o&&o.userData.id==null)o=o.parent;if(o)id=o.userData.id}
+ }sel=id;updUI()}dn=null});
 /* storage */
 function idb(m,key,val){return new Promise((ok,no)=>{try{const q=indexedDB.open("bloom",1);q.onupgradeneeded=()=>q.result.createObjectStore("glb");q.onerror=()=>no(q.error);q.onsuccess=()=>{const s=q.result.transaction("glb",m==="get"?"readonly":"readwrite").objectStore("glb"),r=m==="get"?s.get(key):s.put(val,key);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}}catch(e){no(e)}})}
 const toObj=()=>({v:1,meta:{app:"The Little Bloom Atelier",saved:new Date().toISOString()},seed:bq.seed,full:bq.full,items:bq.items,assets:[...new Set(bq.items.map(i=>i.a))]});
@@ -396,7 +447,7 @@ P_.addEventListener("change",e=>{const t=e.target;if(t.dataset.k)commit();else i
  else if(t.id==="fq"){flt.q=t.value;updUI()}else if(t.id==="fc"){flt.cat=t.value;updUI()}else if(t.id==="fa"){flt.av=t.value;updUI()}else if(t.id==="gf"&&t.files[0]){importGLB(t.files[0]);t.value=""}});
 for(let i=0;i<5;i++)bq.items.push({id:nid,n:nid++,a:"rose-proc",c:"blush",x:0,y:.36,z:0,r:0,s:1});autoArrange();hist=[snap()];hix=0;
 
-try{setQuality();resetView();rebuild();requestAnimationFrame(frame)}catch(e){fail("Initialization failed",e)}
+try{setQuality();$("bQ").textContent="Quality: "+QN[st.q];resetView();rebuild();requestAnimationFrame(frame)}catch(e){fail("Initialization failed",e)}
 };
 </script>
 <script>
