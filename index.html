@@ -336,7 +336,7 @@ const CATALOG=[{id:"rose-proc",name:"Garden Rose (procedural fallback)",sci:"Ros
 [["peony","Peony","Paeonia lactiflora","Elegant Blooms"],["ranunculus","Ranunculus","Ranunculus asiaticus","Soft Garden Flowers"],["tulip","Tulip","Tulipa gesneriana","Elegant Blooms"],["lisianthus","Lisianthus","Eustoma grandiflorum","Soft Garden Flowers"],["gypsophila","Baby's Breath","Gypsophila paniculata","Fillers"],["eucalyptus","Eucalyptus","Eucalyptus cinerea","Foliage"]].forEach(([id,name,sci,cat])=>CATALOG.push({id,name,sci,cat,fmt:"glb",origin:"planned",src:null,status:"missing",headR:.05,colors:null,lic:"n/a"}));
 const MAXN=30,KEY="bloom.design.v1",inst=new Map(),cmat=new Map(),studioG=()=>groups[2];
 const ray=new T.Raycaster(),ndc=new T.Vector2(),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let bq={seed:1,full:1,layout:"dome",wrap:defaultWrap(),tag:defaultTag(),items:[]},sel=null,nid=1,hist=[],hix=0,mode="simple",tab=null,flt={q:"",cat:"",av:""},armed=null;
+let bq={seed:1,full:1,layout:"dome",wrap:{enabled:true,paper:"champagne",ribbon:true,bow:"maroon",fold:"classic"},tag:{enabled:false,tone:"ivory",text:"A little bloom for you"},items:[]},sel=null,nid=1,hist=[],hix=0,mode="simple",tab=null,flt={q:"",cat:"",av:""},armed=null;
 const cur=()=>bq.items.find(i=>i.id===sel),asset=id=>CATALOG.find(a=>a.id===id);
 function toast(m){const t=$("toast");t.textContent=m;t.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.opacity=0,3200)}
 const selR=new T.Mesh(new T.TorusGeometry(.07,.003,6,36),new T.MeshBasicMaterial({color:0x879B83,depthTest:false}));selR.rotation.x=Math.PI/2;selR.renderOrder=9;selR.raycast=()=>{};scene.add(selR);
