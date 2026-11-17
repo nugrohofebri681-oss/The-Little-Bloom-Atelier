@@ -136,6 +136,48 @@ async function runCase(label,options){
     assert.equal(JSON.parse(await page.locator('#js').inputValue()).layout,'garden');
     item.steps.push('floral layout and undo/redo');
 
+    // P2.7: wrapping is real scene geometry, customizable, undoable and persisted.
+    await page.locator('[data-tab="style"]').click();
+    let wrapping=await page.evaluate(()=>window.__atelierQA().wrap);
+    assert.equal(wrapping.enabled,true);
+    assert.equal(wrapping.paper,'champagne');
+    assert.equal(await page.evaluate(()=>window.__atelierQA().wrapVisible),true);
+    await page.locator('[data-paper="sage"]').click();
+    await page.locator('[data-bow="champagne"]').click();
+    wrapping=await page.evaluate(()=>window.__atelierQA().wrap);
+    assert.equal(wrapping.paper,'sage');
+    assert.equal(wrapping.bow,'champagne');
+    assert.equal(await page.evaluate(()=>window.__atelierQA().paperColor),0x9baf99);
+    await page.locator('[data-ribbon-toggle]').click();
+    assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).ribbon,false);
+    await page.locator('#bUndo').click();
+    assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).ribbon,true);
+    await page.locator('#bRedo').click();
+    assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).ribbon,false);
+    await page.locator('[data-ribbon-toggle]').click();
+    await page.locator('[data-wrap-toggle]').click();
+    assert.equal(await page.evaluate(()=>window.__atelierQA().wrapVisible),false);
+    await page.locator('#bUndo').click();
+    assert.equal(await page.evaluate(()=>window.__atelierQA().wrapVisible),true);
+    item.steps.push('wrapping palette / ribbon toggle / undo/redo');
+    if(label==='android-mobile')await page.screenshot({path:'test-results/android-florist-style.png',fullPage:true});
+    await page.locator('[data-tab="save"]').click();
+    await page.locator('[data-s="exp"]').click();
+    const wrapped=JSON.parse(await page.locator('#js').inputValue());
+    assert.equal(wrapped.wrap.paper,'sage');
+    assert.equal(wrapped.wrap.bow,'champagne');
+    // Older v1 designs do not have a wrapping key: keep their former bare-stem appearance.
+    const legacy={...wrapped};delete legacy.wrap;
+    await page.locator('#js').fill(JSON.stringify(legacy));
+    await page.locator('[data-s="imp"]').click();
+    await page.waitForFunction(()=>window.__atelierQA?.().wrapVisible===false,null,{timeout:10000});
+    assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).enabled,false);
+    await page.locator('#js').fill(JSON.stringify(wrapped));
+    await page.locator('[data-s="imp"]').click();
+    await page.waitForFunction(()=>window.__atelierQA?.().wrapVisible===true,null,{timeout:10000});
+    assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).paper,'sage');
+    item.steps.push('legacy save compatibility / florist style restore');
+
     await page.locator('[data-tab="preview"]').click();
     assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('pv')),true);
     await page.locator('#pvx').click();
