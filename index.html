@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Little Bloom Atelier · P2.8</title>
+<title>The Little Bloom Atelier · P2.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
 <style>
@@ -335,7 +335,7 @@ const CATALOG=[{id:"rose-proc",name:"Garden Rose (procedural fallback)",sci:"Ros
 [["peony","Peony","Paeonia lactiflora","Elegant Blooms"],["ranunculus","Ranunculus","Ranunculus asiaticus","Soft Garden Flowers"],["tulip","Tulip","Tulipa gesneriana","Elegant Blooms"],["lisianthus","Lisianthus","Eustoma grandiflorum","Soft Garden Flowers"],["gypsophila","Baby's Breath","Gypsophila paniculata","Fillers"],["eucalyptus","Eucalyptus","Eucalyptus cinerea","Foliage"]].forEach(([id,name,sci,cat])=>CATALOG.push({id,name,sci,cat,fmt:"glb",origin:"planned",src:null,status:"missing",headR:.05,colors:null,lic:"n/a"}));
 const MAXN=30,KEY="bloom.design.v1",inst=new Map(),cmat=new Map(),studioG=()=>groups[2];
 const ray=new T.Raycaster(),ndc=new T.Vector2(),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let bq={seed:1,full:1,layout:"dome",wrap:{enabled:true,paper:"champagne",ribbon:true,bow:"maroon"},items:[]},sel=null,nid=1,hist=[],hix=0,mode="simple",tab=null,flt={q:"",cat:"",av:""},armed=null;
+let bq={seed:1,full:1,layout:"dome",wrap:defaultWrap(),tag:defaultTag(),items:[]},sel=null,nid=1,hist=[],hix=0,mode="simple",tab=null,flt={q:"",cat:"",av:""},armed=null;
 const cur=()=>bq.items.find(i=>i.id===sel),asset=id=>CATALOG.find(a=>a.id===id);
 function toast(m){const t=$("toast");t.textContent=m;t.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.opacity=0,3200)}
 const selR=new T.Mesh(new T.TorusGeometry(.07,.003,6,36),new T.MeshBasicMaterial({color:0x879B83,depthTest:false}));selR.rotation.x=Math.PI/2;selR.renderOrder=9;selR.raycast=()=>{};scene.add(selR);
@@ -349,6 +349,14 @@ const PAPER={champagne:["Champagne",0xe8d7c6],blush:["Blush",0xdca5b3],sage:["Sa
 const BOW={maroon:["Maroon",0x713f50],rose:["Dusty rose",0xc98e9f],champagne:["Champagne",0xd9bc91],sage:["Sage",0x879b83]};
 const FOLDS={classic:"Classic folds",fan:"Fan pleats",petal:"Petal edge"};
 const defaultWrap=()=>({enabled:true,paper:"champagne",ribbon:true,bow:"maroon",fold:"classic"});
+const TAG_TONES={ivory:["Ivory","#f6eddf","#76545b"],blush:["Blush","#f0ccd4","#713f50"],sage:["Sage","#d9e4d2","#4d6654"]};
+const defaultTag=()=>({enabled:false,tone:"ivory",text:"A little bloom for you"});
+function normalizeTag(t){
+ const d=defaultTag();
+ if(!t||typeof t!=="object")return d;
+ return {enabled:t.enabled===true,tone:Object.hasOwn(TAG_TONES,t.tone)?t.tone:d.tone,
+  text:typeof t.text==="string"?t.text.replace(/[\u0000-\u001f\u007f]/g," ").slice(0,80):d.text}
+}
 function normalizeWrap(w,legacy=false){
  const d=defaultWrap();
  if(!w||typeof w!=="object")return {...d,enabled:!legacy};
@@ -444,7 +452,59 @@ for(const side of [-1,1]){
 }
 const knot=new T.Mesh(new T.SphereGeometry(1,12,8),ribbonMat);
 knot.scale.set(.021,.017,.014);knot.position.z=.021;bowParts.add(knot);
+/* ===== P2.9 personalized 3D gift tag =====
+   One small CanvasTexture, updated only on note/palette changes, not every frame.
+   Sanitized text is painted on canvas (never interpolated into the DOM as HTML). */
+const tagCanvas=document.createElement("canvas");tagCanvas.width=512;tagCanvas.height=320;
+const tagCtx=tagCanvas.getContext("2d");
+const tagTexture=new T.CanvasTexture(tagCanvas);tagTexture.encoding=T.sRGBEncoding;
+tagTexture.minFilter=T.LinearFilter;tagTexture.magFilter=T.LinearFilter;
+const tagMaterial=new T.MeshBasicMaterial({map:tagTexture,transparent:true,side:T.DoubleSide,depthWrite:false});
+const tagRoot=new T.Group();tagRoot.name="personalized gift note";
+tagRoot.position.set(.151,.207,.175);tagRoot.rotation.set(0,-.12,-.11);wrapRoot.add(tagRoot);
+const giftCard=new T.Mesh(new T.PlaneGeometry(.176,.11),tagMaterial);giftCard.name="gift note card";tagRoot.add(giftCard);
+const eyeletMaterial=new T.MeshStandardMaterial({color:0xc3a782,metalness:.5,roughness:.36,side:T.DoubleSide});
+const eyelet=new T.Mesh(new T.RingGeometry(.0057,.0092,20),eyeletMaterial);
+eyelet.position.set(-.073,.039,.0012);tagRoot.add(eyelet);
+const cordCurve=new T.CatmullRomCurve3([
+ new V3(.068,.151,.066),new V3(.077,.194,.107),
+ new V3(.085,.224,.149),new V3(.081,.248,.177)
+]);
+const cordMaterial=new T.MeshStandardMaterial({color:0xc6aa86,roughness:.95});
+const cord=new T.Mesh(new T.TubeGeometry(cordCurve,18,.0014,4,false),cordMaterial);wrapRoot.add(cord);
+let tagPaintKey="";
+function paintGiftTag(){
+ const tag=normalizeTag(bq.tag),key=tag.tone+"|"+tag.text;
+ if(key===tagPaintKey)return;tagPaintKey=key;
+ const ctx=tagCtx;if(!ctx)return;
+ const [name,bg,ink]=TAG_TONES[tag.tone],W=tagCanvas.width,H=tagCanvas.height;
+ ctx.clearRect(0,0,W,H);
+ const r=23;ctx.beginPath();ctx.moveTo(r+7,6);ctx.lineTo(W-r-7,6);
+ ctx.quadraticCurveTo(W-6,6,W-6,r+7);ctx.lineTo(W-6,H-r-7);
+ ctx.quadraticCurveTo(W-6,H-6,W-r-7,H-6);ctx.lineTo(r+7,H-6);
+ ctx.quadraticCurveTo(6,H-6,6,H-r-7);ctx.lineTo(6,r+7);
+ ctx.quadraticCurveTo(6,6,r+7,6);ctx.closePath();
+ ctx.fillStyle=bg;ctx.fill();ctx.lineWidth=3;ctx.strokeStyle="rgba(100,73,63,.22)";ctx.stroke();
+ ctx.fillStyle=ink;ctx.textAlign="center";ctx.textBaseline="middle";
+ ctx.font="500 18px Georgia,serif";ctx.fillText("THE LITTLE BLOOM ATELIER",W/2,57);
+ ctx.fillStyle="rgba(113,63,80,.38)";ctx.fillRect(164,85,184,1.5);
+ ctx.fillStyle=ink;ctx.font="italic 500 38px Georgia,serif";ctx.fillText("For You",W/2,124);
+ const words=tag.text.trim().split(/\s+/).filter(Boolean),lines=[];let line="";
+ ctx.font="26px Georgia,serif";
+ for(const word of words){
+  const next=line?line+" "+word:word;
+  if(ctx.measureText(next).width>420&&line){lines.push(line);line=word}
+  else line=next
+ }
+ if(line)lines.push(line);
+ const shown=lines.slice(0,3),start=194-(shown.length-1)*9;
+ ctx.fillStyle=ink;shown.forEach((txt,i)=>ctx.fillText(txt,W/2,start+i*36,425));
+ ctx.fillStyle="rgba(113,63,80,.42)";ctx.font="italic 18px Georgia,serif";
+ ctx.fillText("made with care",W/2,284);
+ tagTexture.needsUpdate=true
+}
 wrapRoot.traverse(o=>{o.raycast=()=>{}});
+
 /* Sculpt the sleeve mouth around the flower footprint while keeping the waist narrow.
    We update only a few hundred shared vertices when the arrangement changes; not per frame. */
 let paperWidthKey="";
@@ -477,7 +537,9 @@ function syncWrapping(){
  paperMat.color.setHex(PAPER[w.paper][1]);
  shadeMat.color.setHex(PAPER[w.paper][1]).multiplyScalar(.87);
  ribbonMat.color.setHex(BOW[w.bow][1]);
- band.visible=bowParts.visible=w.ribbon
+ band.visible=bowParts.visible=w.ribbon;
+ tagRoot.visible=cord.visible=wrapRoot.visible&&normalizeTag(bq.tag).enabled;
+ if(tagRoot.visible)paintGiftTag()
 }
 
 /* Deterministic floral silhouettes: head radii determine spacing; the choice is saved in v1 design JSON. */
