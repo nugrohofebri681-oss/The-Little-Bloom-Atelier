@@ -1,6 +1,6 @@
 # The Little Bloom Atelier 🌹
 
-A mobile-first 3D bouquet atelier, currently in **P2.8 development**.
+A mobile-first 3D bouquet atelier, currently in **P2.9 development**.
 
 ## Current build
 
@@ -26,6 +26,8 @@ A mobile-first 3D bouquet atelier, currently in **P2.8 development**.
 - **P2.8 design compatibility:** P2.7 JSON with wrapping but no silhouette defaults to Classic Folds; older bare-stem v1 JSON still loads without forcing wrapping on.
 - **P2.8.1 visual QA refinements:** reviewed actual Android-size and desktop Chromium screenshots. The sleeve mouth expands with the arrangement's radial spread while keeping the tied waist narrow, and the paper lip sits lower on large bouquets to avoid hiding bloom heads. Vertices are updated only when the arrangement width changes, with no new textures or per-frame allocation.
 - **Clean editor default:** debug diagnostics and performance stats are hidden initially, available on demand via the **Stats** button. This prevents technical overlays from obstructing the bouquet in mobile portrait view.
+- **P2.9 personalized gift note:** optional 3D card tied to the wrapping, with up to 80 characters of plain text, and Ivory/Blush/Sage card themes. Customize it under **Style → Personal gift tag**. The design uses one small 512×320 CanvasTexture; the card's artwork is repainted only when the text or theme changes, not every animation frame. Card selection doesn't interrupt flower picking.
+- **P2.9 saved design compatibility:** note text, theme and visibility are included in the existing v1 JSON format and undo history. Earlier designs without the `tag` field load with the note switched off, preserving their original appearance. Text is drawn on a canvas and escaped in the editor, not injected as HTML. Enabling a tag also enables its paper wrapping.
 - Validation and physical Android performance still in progress; this is not yet a production release.
 
 ## Run
@@ -40,7 +42,7 @@ With Node.js 20+ run `node tests/source-smoke.mjs`. It checks inline JavaScript 
 
 ## Browser regression tests
 
-A GitHub Actions job runs `tests/browser-smoke.mjs` in a headless Chromium desktop viewport and an Android-sized emulated mobile viewport. It checks basic editing, load/save, missing-model preservation and repeated real GLB flowers (5, 12, 30), including whether draw calls remain bounded. P2.5 also verifies arrangement selection, undo/redo, and the mobile Fit camera on 30 roses. P2.6 adds mobile panel collapse/expand, focus checks against the actual safe rectangle, and precision nudge tests. P2.7 tests color palettes, wrapping and ribbon toggles, undo/redo, preserved old JSON behavior, and visibility while handling 30 real roses. P2.8 adds paper silhouette changes, geometry depth checks, and tests for older wrapped designs without a fold property. The latest test also checks the Stats on/off control and that the 30-rose sleeve expands beyond the small-bouquet width. The workflow uploads screenshots and a JSON result as the **browser-review** artifact.
+A GitHub Actions job runs `tests/browser-smoke.mjs` in a headless Chromium desktop viewport and an Android-sized emulated mobile viewport. It checks basic editing, load/save, missing-model preservation and repeated real GLB flowers (5, 12, 30), including whether draw calls remain bounded. P2.5 also verifies arrangement selection, undo/redo, and the mobile Fit camera on 30 roses. P2.6 adds mobile panel collapse/expand, focus checks against the actual safe rectangle, and precision nudge tests. P2.7 tests color palettes, wrapping and ribbon toggles, undo/redo, preserved old JSON behavior, and visibility while handling 30 real roses. P2.8 adds paper silhouette changes, geometry depth checks, and tests for older wrapped designs without a fold property. The latest test also checks the Stats on/off control and that the 30-rose sleeve expands beyond the small-bouquet width. P2.9 also exercises gift-note text input, texture updates, color undo/redo and backward-compatible saved designs. The workflow uploads screenshots and a JSON result as the **browser-review** artifact.
 
 The Android-sized run uses **software-rendered Chromium**: displayed FPS does **not** predict physical Samsung Galaxy A05 performance, temperature, memory pressure or battery usage.
 
@@ -79,10 +81,11 @@ On a physical Samsung Galaxy A05, open the served site in Chrome, select **Stats
 2. Tap the sheet's **Edit** handle to expand it; choose **Arrange → Advanced**, tap a flower on canvas, and check its head appears above the panel. Adjust X/Y/Z and try the 0.01 nudge buttons and **Done**.
 3. Open/close the panel while editing and rotate/pinch the canvas; confirm no flower coordinates change unless you edit or re-arrange them.
 4. Open **Style** and test Classic Folds, Fan Pleats and Petal Edge. Check their paper silhouettes, color swatches, ribbon toggles and bow colors. Make sure the wrapping remains below the roses while rotating the bouquet and does not block selecting flowers.
-5. Assemble 5, then 12, then 30 flowers. Inspect FPS and responsiveness after each addition.
-6. Test Undo/Redo, Save/Load, Preview, camera pinch zoom, and the 30-flower scene.
-7. Switch to Medium only if the phone stays responsive and cool. If the renderer feels sluggish, return to Low.
-8. Confirm designs remain after refreshing, and that unavailable imports keep their original IDs.
+5. Open **Style → Personal gift tag**: enable the card, enter a short message, change card colors and check that the 3D note stays attached to the wrapper and doesn't interfere with choosing flowers.
+6. Assemble 5, then 12, then 30 flowers. Inspect FPS and responsiveness after each addition.
+7. Test Undo/Redo, Save/Load, Preview, camera pinch zoom, and the 30-flower scene.
+8. Switch to Medium only if the phone stays responsive and cool. If the renderer feels sluggish, return to Low.
+9. Confirm designs remain after refreshing, and that unavailable imports keep their original IDs.
 
 This acceptance gate requires a **physical device**; CI completion is not physical-device approval.
 
