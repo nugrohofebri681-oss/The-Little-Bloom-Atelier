@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Little Bloom Atelier · P2.2.1</title>
+<title>The Little Bloom Atelier · P2.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
 <style>
@@ -179,7 +179,8 @@ const ring=new T.Mesh(new T.TorusGeometry(.172,.002,6,64),new T.MeshStandardMate
 ring.rotation.x=Math.PI/2;scene.add(ring);
 
 /* ---------- state / camera ---------- */
-const QN=["Low","Medium","High"],PR=[1,1.5,2];
+const portable=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const QN=["Low","Medium","High"],PR=portable?[1,1.25,1.5]:[1,1.5,2];
 const st={mode:2,q:1,auto:false,pr:1,theta:.6,phi:1.3,r:.95,tgt:new V3(.03,.2,0)};
 const VIEW=[{r:.42,y:.34,x:.04},{r:.62,y:.25,x:0},{r:.62,y:.25,x:0}];
 let groups=null;
@@ -202,7 +203,7 @@ function rebuild(){
  diag("geo",!bad&&n>0,bad?bad+" meshes with invalid vertices":n+" meshes, "+Math.round(tris(groups[0]))+" tris");
  if(bad||!n)fail("Rose geometry is invalid ("+bad+" bad meshes of "+n+").")}
 function setQuality(){st.pr=PR[st.q];renderer.setPixelRatio(Math.min(devicePixelRatio||1,st.pr));
- renderer.shadowMap.enabled=st.q>0;key.castShadow=st.q>0;const sz=st.q==2?2048:1024;
+ renderer.shadowMap.enabled=st.q>0;key.castShadow=st.q>0;const sz=st.q==2?(portable?1024:2048):(portable?512:1024);
  if(key.shadow.map){key.shadow.map.dispose();key.shadow.map=null}key.shadow.mapSize.set(sz,sz);
  mats.petal.needsUpdate=mats.green.needsUpdate=ped.material.needsUpdate=true;resize()}
 function setMode(m,force){if(m===st.mode&&!force)return;if(m!==st.mode){st.mode=m;resetView()}
@@ -257,7 +258,9 @@ function relax(mv,iters){const all=bq.items,mvs=new Set(mv),base=new Map(mv.map(
   mv.forEach(lift);if(!moved)break}
  mv.forEach(it=>{it.x=Math.round(Math.max(-.65,Math.min(.65,it.x))*1e4)/1e4;it.z=Math.round(Math.max(-.65,Math.min(.65,it.z))*1e4)/1e4;lift(it);it.y=Math.round(it.y*1e4)/1e4})}
 const autoArrange=()=>{bq.items.forEach((it,i)=>place(it,i));relax(bq.items,80)};
-function makeInst(it){const A=asset(it.a);if(!A||A.status!=="available")return null;let g;
+function makeInst(it){const original=asset(it.a),A=original&&original.status==="available"?original:asset("rose-proc");
+ // Keep unavailable asset IDs in saved designs; render placeholders until their original models are restored.
+ if(!A)return null;let g;
  if(A.fmt==="procedural"){const hp=new V3(it.x,it.y,it.z);
   g=makeRose(groups.heads[it.n%2],[new V3(it.x*.15,0,it.z*.15),new V3(it.x*.2,.11,it.z*.2),new V3(it.x*.4,it.y*.6,it.z*.4),hp],it.n%3==0?[.55]:[],it.s,it.n*5+3,{v:6},groups.leaves);
   g.children[1].rotateY(it.r);g.children[1].material=matFor(it.c)}
@@ -306,8 +309,8 @@ function validate(o){if(!o||o.v!==1||!Array.isArray(o.items))throw new Error("No
  o.items.forEach(i=>{for(const k of["x","y","z","r","s"])if(!isFinite(i[k]))throw new Error("Invalid transform values.");if(typeof i.a!=="string")throw new Error("Invalid flower entry.");if(Math.abs(i.x)>.8||Math.abs(i.z)>.8||i.y<0||i.y>.8||!(i.s>0&&i.s<=3))throw new Error("Transform values out of range.")});return o}
 async function applyDesign(o){validate(o);const miss=[];await manifestReady;
  for(const id of new Set(o.items.map(i=>i.a)))if(!asset(id)||asset(id).status!=="available"){let ok=false;if(id.startsWith("imp-")){try{const r=await idb("get",id);if(r){CATALOG.push(await parseGLB(r.buf,r.name,id));ok=true}}catch(e){}}if(!ok)miss.push(id)}
- const its=o.items.filter(i=>!miss.includes(i.a));bq={seed:(o.seed|0)||1,full:Math.min(1.6,Math.max(.7,+o.full||1)),items:its.map((i,n)=>({id:n+1,n:(Number.isFinite(+i.n)&&+i.n>=0)?Math.floor(+i.n):n+1,a:i.a,c:String(i.c||"blush"),x:+i.x,y:+i.y,z:+i.z,r:+i.r,s:+i.s}))};nid=Math.max(nid,its.length+1);sel=null;commit();
- toast(miss.length?"Loaded. "+miss.length+" model(s) missing: reimport the GLB file.":"Design loaded")}
+ const its=o.items;bq={seed:(o.seed|0)||1,full:Math.min(1.6,Math.max(.7,+o.full||1)),items:its.map((i,n)=>({id:n+1,n:(Number.isFinite(+i.n)&&+i.n>=0)?Math.floor(+i.n):n+1,a:i.a,c:String(i.c||"blush"),x:+i.x,y:+i.y,z:+i.z,r:+i.r,s:+i.s}))};nid=Math.max(nid,its.length+1);sel=null;commit();
+ toast(miss.length?"Design loaded with "+miss.length+" unavailable model(s). Showing fallback roses; original asset IDs preserved.":"Design loaded")}
 const TEXK=["map","normalMap","roughnessMap","metalnessMap","aoMap","emissiveMap","alphaMap"];
 function eachTex(raw,f){const seen=new Set();raw.traverse(o=>{if(!o.isMesh)return;[].concat(o.material).forEach(m=>{if(m)TEXK.forEach(k=>{const t=m[k];if(t&&!seen.has(t.uuid)){seen.add(t.uuid);f(t)}})})})}
 function texMB(raw){let px=0;eachTex(raw,t=>{const im=t.image;if(im&&im.width)px+=im.width*im.height});return Math.round(px*4*1.33/1048576*10)/10}
@@ -366,7 +369,7 @@ function panel(){const p=$("panel");if(!tab||tab==="preview"){p.hidden=true;retu
   h+=`<div class=r><input type=text id=fq placeholder="Search" value="${esc(flt.q)}" style="flex:2"><select id=fc><option value="">All categories${cats.map(c=>`<option ${c===flt.cat?"selected":""}>${esc(c)}`).join("")}</select><select id=fa>${[["","Any status"],["available","Available"],["missing","Not installed"]].map(a=>`<option value="${a[0]}" ${a[0]===flt.av?"selected":""}>${a[1]}`).join("")}</select></div>`;
   CATALOG.filter(a=>(!flt.q||(a.name+a.sci).toLowerCase().includes(flt.q.toLowerCase()))&&(!flt.cat||a.cat===flt.cat)&&(!flt.av||a.status===flt.av)).forEach(a=>{h+=`<div class=r><div style="flex:1"><b>${esc(a.name)}</b><br><small>${esc(a.sci||a.cat)} · ${a.status==="available"?"installed":a.status==="loading"?"loading…":a.status==="failed"?"failed: "+esc(a.err||"unknown"):"planned, not installed"}${a.note?" · "+esc(a.note):""}${a.lic&&a.lic!=="n/a"?" · "+esc(a.lic):""}${a.license&&a.license.attribution_required?" · attribution: "+esc(a.author||""):""}</small>${a.license&&/^https:\/\//.test(a.license.source_url||"")?`<a class="asset-source" href="${esc(a.license.source_url)}" target="_blank" rel="noopener noreferrer">View asset source</a>`:""}</div><button data-add="${a.id}" ${a.status!=="available"?"disabled":""} style="flex:0 0 64px">Add</button></div>`});
   {const n=f=>CATALOG.filter(f).length,ext=n(a=>a.status==="available"&&a.origin==="manifest"),imp=n(a=>a.status==="available"&&a.cat==="Imported"),pl=n(a=>a.status==="missing"),fl=n(a=>a.status==="failed");h+=`<small>${ext} loaded external · ${imp} imported · 1 built-in fallback · ${pl} planned${fl?" · "+fl+" failed":""}. ${esc(manifestInfo)}. Import GLB files under Save.</small>`;const cr=CATALOG.filter(a=>a.status==="available"&&a.license&&a.license.attribution_required);if(cr.length)h+=`<small>Credits: ${cr.map(a=>esc(a.name)+" by "+esc(a.author)+" ("+esc(a.license.name)+(a.modified?", modified":"")+")").join("; ")}</small>`}}
- else if(tab==="arrange"){h+=`<div class=r><button data-m="simple" aria-pressed="${mode==="simple"}">Simple</button><button data-m="adv" aria-pressed="${mode==="adv"}">Advanced</button></div><div>${bq.items.length}/${MAXN} flowers · ${it?"Selected #"+it.id+" "+esc(asset(it.a).name):"Tap a flower to select"}</div>`;
+ else if(tab==="arrange"){h+=`<div class=r><button data-m="simple" aria-pressed="${mode==="simple"}">Simple</button><button data-m="adv" aria-pressed="${mode==="adv"}">Advanced</button></div><div>${bq.items.length}/${MAXN} flowers · ${it?"Selected #"+it.id+" "+esc(asset(it.a)?.name||"Unavailable: "+it.a):"Tap a flower to select"}</div>`;
   if(mode==="simple")h+=`<div class=r><button data-a="dup">+1 same</button><button data-a="del">Remove</button></div><div class=r><button data-a="auto">Auto Arrange</button><button data-a="seed">New seed (${bq.seed})</button></div><label>Fullness<input type=range id=fu min=.7 max=1.6 step=.05 value=${bq.full}></label>`;
   else if(it)h+=sl("x","Left / right",-.65,.65,.002,it.x)+sl("z","Front / back",-.65,.65,.002,it.z)+sl("y","Height",.2,.46,.002,it.y)+sl("r","Rotation",0,6.28,.05,it.r)+sl("s","Scale",.6,1.5,.02,it.s)+`<div class=r><button data-a="rst">Reset flower</button><button data-a="del">Remove</button></div>`;else h+="<small>Select a flower to edit it.</small>"}
  else if(tab==="style"){const A=it&&asset(it.a);h+=A&&A.colors?`<div class=r>${A.colors.map(c=>`<button data-col="${c}" aria-pressed="${it.c===c}">${COLS[c][0]}</button>`).join("")}</div><div class=r><button data-a="colall">Apply this color to all roses</button></div>`:"<small>Select a flower with color variants (the procedural rose). Imported models keep their own colors.</small>"}
@@ -382,7 +385,7 @@ P_.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
  else if(d.a==="del")removeSel();else if(d.a==="dup"){if(it)addFlower(it.a);else addFlower("rose-proc")}
  else if(d.a==="auto"){autoArrange();commit()}else if(d.a==="seed"){bq.seed=bq.seed%99+1;autoArrange();commit()}
  else if(d.a==="rst"&&it){place(it,bq.items.indexOf(it));relax([it]);commit()}
- else if(d.a==="colall"&&it){bq.items.forEach(i=>{if(asset(i.a).colors)i.c=it.c});commit()}
+ else if(d.a==="colall"&&it){bq.items.forEach(i=>{if(asset(i.a)?.colors)i.c=it.c});commit()}
  else if(d.s==="save"){try{localStorage.setItem(KEY,JSON.stringify(toObj()));toast("Saved on this device")}catch(x){toast("Save failed: "+x.message)}}
  else if(d.s==="load"||d.s==="new"){if(armed!==d.s){armed=d.s;updUI();setTimeout(()=>{if(armed===d.s){armed=null;updUI()}},3000);return}armed=null;
   if(d.s==="new"){bq={seed:1,full:1,items:[]};sel=null;commit()}else{try{const r=localStorage.getItem(KEY);if(!r)return toast("No saved design found");applyDesign(JSON.parse(r)).catch(x=>toast("Load failed: "+x.message))}catch(x){toast("Load failed: "+x.message)}}}
