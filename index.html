@@ -455,7 +455,19 @@ cv.addEventListener("pointerup",e=>{if(!dn||st.mode!==2)return;if(Math.hypot(e.c
  if(hit){
   if(hit.object.isInstancedMesh&&hit.instanceId!==undefined)id=hit.object.userData.itemIds[hit.instanceId]??null;
   else{let o=hit.object;while(o&&o.userData.id==null)o=o.parent;if(o)id=o.userData.id}
- }sel=id;
+ }
+  // Finger-sized hit area for mobile, used only when the mesh raycast missed.
+  if(id===null&&mobileUI()){
+   let nearest=38;
+   for(const it of bq.items){
+    const p=new V3(it.x,it.y,it.z).project(cam);
+    if(p.z< -1||p.z>1)continue;
+    const x=r.left+(p.x+1)*r.width/2,y=r.top+(1-p.y)*r.height/2;
+    const d=Math.hypot(x-e.clientX,y-e.clientY);
+    if(d<nearest){nearest=d;id=it.id}
+   }
+  }
+  sel=id;
   if(id!==null&&mobileUI()){tab="arrange";mode="adv";setSheet(true);focusFlower(cur(),true)}
   updUI()}dn=null});
 /* storage */
