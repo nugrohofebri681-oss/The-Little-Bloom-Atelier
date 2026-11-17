@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Little Bloom Atelier · P2.2</title>
+<title>The Little Bloom Atelier · P2.2.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
 <style>
@@ -384,9 +384,9 @@ P_.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
  else if(d.a==="rst"&&it){place(it,bq.items.indexOf(it));relax([it]);commit()}
  else if(d.a==="colall"&&it){bq.items.forEach(i=>{if(asset(i.a).colors)i.c=it.c});commit()}
  else if(d.s==="save"){try{localStorage.setItem(KEY,JSON.stringify(toObj()));toast("Saved on this device")}catch(x){toast("Save failed: "+x.message)}}
- else if(d.s==="load"||d.s==="new"){if(armed!==d.s){armed=d.s;updUI();setTimeout(()=>{armed=null},3000);return}armed=null;
+ else if(d.s==="load"||d.s==="new"){if(armed!==d.s){armed=d.s;updUI();setTimeout(()=>{if(armed===d.s){armed=null;updUI()}},3000);return}armed=null;
   if(d.s==="new"){bq={seed:1,full:1,items:[]};sel=null;commit()}else{try{const r=localStorage.getItem(KEY);if(!r)return toast("No saved design found");applyDesign(JSON.parse(r)).catch(x=>toast("Load failed: "+x.message))}catch(x){toast("Load failed: "+x.message)}}}
- else if(d.s==="exp"){const t=JSON.stringify(toObj(),null,1);$("js").value=t;try{navigator.clipboard.writeText(t)}catch(x){}try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"application/json"}));a.download="bouquet.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}catch(x){}toast("JSON ready (copy from the box)")}
+ else if(d.s==="exp"){const t=JSON.stringify(toObj(),null,1);$("js").value=t;try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).catch(()=>{})}catch(x){}try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"application/json"}));a.download="bouquet.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}catch(x){}toast("JSON ready (copy from the box)")}
  else if(d.s==="imp"){try{applyDesign(JSON.parse($("js").value)).catch(x=>toast("Import failed: "+x.message))}catch(x){toast("Import failed: invalid JSON")}}});
 P_.addEventListener("input",e=>{const t=e.target,it=cur();if(t.dataset.k&&it){it[t.dataset.k]=+t.value;updateOne(it)}else if(t.dataset.adj){const A=CATALOG.filter(a=>a.approx).pop();A.adj[t.dataset.adj]=+t.value;studioRefresh(true)}});
 P_.addEventListener("change",e=>{const t=e.target;if(t.dataset.k)commit();else if(t.id==="fu"){bq.full=+t.value;autoArrange();commit()}
@@ -400,8 +400,23 @@ try{setQuality();resetView();rebuild();requestAnimationFrame(frame)}catch(e){fai
 (function(){
 var urls=[["cdnjs","https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"],["jsDelivr","https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"]],i=0,done=false;
 function next(){if(done)return;if(i>=urls.length){done=true;bloomDiag("three",false,"all sources failed");bloomFail("Three.js could not be downloaded from cdnjs or jsDelivr. This view may block external scripts, or the device is offline. Try opening the page in a normal browser tab or from GitHub Pages.");return}
- var u=urls[i++],s=document.createElement("script"),t=setTimeout(function(){if(!window.THREE){s.onload=s.onerror=null;next()}},10000);
- s.onload=function(){clearTimeout(t);if(window.THREE){done=true;bloomDiag("three",true,u[0]+" r"+THREE.REVISION);var g=document.createElement("script"),go=function(){if(go.d)return;go.d=1;try{window.__start()}catch(e){bloomFail("Startup crashed",e)}};g.onload=go;g.onerror=function(){window.__noGLB=1;go()};setTimeout(g.onerror,7000);g.src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js";document.head.appendChild(g)}else next()};
+ var u=urls[i++],s=document.createElement("script"),t=setTimeout(function(){if(!window.THREE){s.onload=s.onerror=null;s.remove();next()}},10000);
+ s.onload=function(){clearTimeout(t);if(window.THREE){done=true;bloomDiag("three",true,u[0]+" r"+THREE.REVISION);var go=function(){if(go.d)return;go.d=1;try{window.__start()}catch(e){bloomFail("Startup crashed",e)}};
+var loaders=["https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js","https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"],j=0;
+function loaderNext(){
+ if(window.THREE&&THREE.GLTFLoader){go();return}
+ if(j>=loaders.length){window.__noGLB=1;go();return}
+ var g=document.createElement("script"),finished=false;
+ var timer=setTimeout(function(){finish(false)},9000);
+ function finish(ok){
+  if(finished)return;finished=true;clearTimeout(timer);g.onload=g.onerror=null;
+  if(!ok)g.remove();
+  if(window.THREE&&THREE.GLTFLoader)go();else loaderNext()
+ }
+ g.onload=function(){finish(true)};g.onerror=function(){finish(false)};
+ g.src=loaders[j++];document.head.appendChild(g)
+}
+loaderNext()}else next()};
  s.onerror=function(){clearTimeout(t);s.remove();next()};
  s.src=u[1];document.head.appendChild(s)}
 next();
