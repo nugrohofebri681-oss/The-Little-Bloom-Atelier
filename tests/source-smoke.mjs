@@ -7,7 +7,7 @@ import {readFileSync, existsSync} from 'node:fs';
 import {Script} from 'node:vm';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-assert.match(html, /<title>The Little Bloom Atelier · P2\.2\.1<\/title>/);
+assert.match(html, /<title>The Little Bloom Atelier · P2\.3<\/title>/);
 const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
 assert.ok(scripts.length >= 3, 'expected the diagnostic, application and boot scripts');
 for (const [i, block] of scripts.entries()) {
@@ -15,6 +15,8 @@ for (const [i, block] of scripts.entries()) {
 }
 assert.match(html, /function loaderNext\(\)/, 'loader fallback should exist');
 assert.match(html, /navigator\.clipboard\.writeText\(t\)\.catch/, 'clipboard rejection should be handled');
+assert.match(html, /const its=o\.items;bq=/, 'missing assets must not be filtered from saved designs');
+assert.match(html, /portable\?\[1,1\.25,1\.5\]/, 'portable GPU budget should remain');
 
 const manifest = JSON.parse(readFileSync(new URL('../assets/manifest.json', import.meta.url), 'utf8'));
 assert.equal(manifest.schema, 1);
