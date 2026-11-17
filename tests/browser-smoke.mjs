@@ -206,6 +206,41 @@ async function runCase(label,options){
     assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).fold,'fan');
     item.steps.push('legacy save compatibility / florist style restore');
 
+    // P2.9: optional personalized 3D card, one cached CanvasTexture, safe JSON restore.
+    assert.equal(await page.evaluate(()=>window.__atelierQA().tagVisible),false);
+    await page.locator('[data-tab="style"]').click();
+    await page.locator('[data-tag-toggle]').click();
+    assert.equal(await page.evaluate(()=>window.__atelierQA().tagVisible),true);
+    const note='Untukmu, semoga hari ini seindah bunga-bunga ini.';
+    await page.locator('#tagMessage').fill(note);
+    await page.locator('[data-tag-tone="sage"]').click();
+    let gift=await page.evaluate(()=>window.__atelierQA());
+    assert.equal(gift.tag.text,note);
+    assert.equal(gift.tag.tone,'sage');
+    assert.equal(gift.tagVisible,true);
+    assert.ok(gift.tagPaintKey.includes(note),'gift card texture must refresh after editing');
+    await page.locator('#bUndo').click();
+    assert.equal((await page.evaluate(()=>window.__atelierQA().tag)).tone,'ivory');
+    await page.locator('#bRedo').click();
+    assert.equal((await page.evaluate(()=>window.__atelierQA().tag)).tone,'sage');
+    if(label==='android-mobile')
+      await page.screenshot({path:'test-results/android-gift-note.png',fullPage:true});
+    await page.locator('[data-tab="save"]').click();
+    await page.locator('[data-s="exp"]').click();
+    const withNote=JSON.parse(await page.locator('#js').inputValue());
+    assert.equal(withNote.tag.text,note,'export must preserve custom message');
+    assert.equal(withNote.tag.enabled,true);
+    // Existing saved designs with no 'tag' key keep gift note disabled.
+    const noNote={...withNote};delete noNote.tag;
+    await page.locator('#js').fill(JSON.stringify(noNote));
+    await page.locator('[data-s="imp"]').click();
+    await page.waitForFunction(()=>window.__atelierQA?.().tagVisible===false,null,{timeout:10000});
+    await page.locator('#js').fill(JSON.stringify(withNote));
+    await page.locator('[data-s="imp"]').click();
+    await page.waitForFunction(()=>window.__atelierQA?.().tagVisible===true,null,{timeout:10000});
+    assert.equal((await page.evaluate(()=>window.__atelierQA().tag)).text,note);
+    item.steps.push('3D gift note editing / tone undo / JSON / old-design support');
+
     await page.locator('[data-tab="preview"]').click();
     assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('pv')),true);
     await page.locator('#pvx').click();
