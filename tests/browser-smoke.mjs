@@ -142,6 +142,21 @@ async function runCase(label,options){
     assert.equal(wrapping.enabled,true);
     assert.equal(wrapping.paper,'champagne');
     assert.equal(await page.evaluate(()=>window.__atelierQA().wrapVisible),true);
+    const geometry=await page.evaluate(()=>window.__atelierQA());
+    assert.equal(geometry.paperMeshCount,1,'one visible folded sleeve for efficient rendering');
+    assert.ok(geometry.paperTriangles>450,'the sleeve should have multi-ring 3D folds');
+    assert.ok(geometry.bowDepth>.04,'bow must have real 3D depth instead of flat shapes');
+    await page.locator('[data-fold="fan"]').click();
+    assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).fold,'fan');
+    await page.locator('[data-fold="petal"]').click();
+    assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).fold,'petal');
+    await page.locator('#bUndo').click();
+    assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).fold,'fan');
+    await page.locator('#bRedo').click();
+    assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).fold,'petal');
+    await page.locator('[data-fold="fan"]').click();
+    item.steps.push('multi-ring paper folds / 3D bow volume / preset undo');
+    if(label==='android-mobile')await page.screenshot({path:'test-results/android-fan-fold.png',fullPage:true});
     await page.locator('[data-paper="sage"]').click();
     await page.locator('[data-bow="champagne"]').click();
     wrapping=await page.evaluate(()=>window.__atelierQA().wrap);
@@ -166,6 +181,13 @@ async function runCase(label,options){
     const wrapped=JSON.parse(await page.locator('#js').inputValue());
     assert.equal(wrapped.wrap.paper,'sage');
     assert.equal(wrapped.wrap.bow,'champagne');
+    assert.equal(wrapped.wrap.fold,'fan');
+    // P2.7 designs with wrapping but without the new fold property remain classic.
+    const olderWrap={...wrapped,wrap:{...wrapped.wrap}};
+    delete olderWrap.wrap.fold;
+    await page.locator('#js').fill(JSON.stringify(olderWrap));
+    await page.locator('[data-s="imp"]').click();
+    await page.waitForFunction(()=>window.__atelierQA?.().wrap.fold==='classic',null,{timeout:10000});
     // Older v1 designs do not have a wrapping key: keep their former bare-stem appearance.
     const legacy={...wrapped};delete legacy.wrap;
     await page.locator('#js').fill(JSON.stringify(legacy));
@@ -176,6 +198,7 @@ async function runCase(label,options){
     await page.locator('[data-s="imp"]').click();
     await page.waitForFunction(()=>window.__atelierQA?.().wrapVisible===true,null,{timeout:10000});
     assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).paper,'sage');
+    assert.equal((await page.evaluate(()=>window.__atelierQA().wrap)).fold,'fan');
     item.steps.push('legacy save compatibility / florist style restore');
 
     await page.locator('[data-tab="preview"]').click();
