@@ -7,7 +7,7 @@ import {readFileSync, existsSync} from 'node:fs';
 import {Script} from 'node:vm';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-assert.match(html, /<title>The Little Bloom Atelier · P2\.8<\/title>/);
+assert.match(html, /<title>The Little Bloom Atelier · P2\.9<\/title>/);
 const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
 assert.ok(scripts.length >= 3, 'expected the diagnostic, application and boot scripts');
 for (const [i, block] of scripts.entries()) {
@@ -70,3 +70,10 @@ assert.match(html, /data-fold=/, 'paper folding selector is present');
 assert.match(html, /function updatePaperWidth\(\)/, 'florist paper must adapt to the bouquet spread');
 assert.match(html, /id="diag" hidden/, 'diagnostic UI should be hidden by default');
 assert.match(html, /id="stats" hidden/, 'performance overlay should not obscure preview');
+
+assert.match(html, /function paintGiftTag\(\)/, 'personalized tag texture must render on the GPU');
+assert.match(html, /function normalizeTag\(t\)/, 'gift messages must be normalized before display');
+assert.match(html, /tag:normalizeTag\(bq\.tag\)/, 'gift message is included in design exports');
+assert.match(html, /tag:normalizeTag\(o\.tag\)/, 'legacy design import has optional note');
+assert.match(html, /data-tag-toggle/, 'mobile editing provides gift tag toggle');
+assert.match(html, /id=tagMessage/, 'note text can be entered');
