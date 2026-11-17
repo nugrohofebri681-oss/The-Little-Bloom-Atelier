@@ -27,15 +27,15 @@ async function runCase(label,options){
       const err=document.querySelector('#err');
       const load=document.querySelector('#load');
       return (err&&getComputedStyle(err).display==='flex')||(load&&getComputedStyle(load).display==='none');
-    },{timeout:65000});
+    },null,{timeout:65000});
     const error=await page.locator('#err').evaluate(el=>getComputedStyle(el).display);
     assert.notEqual(error,'flex','app startup fatal: '+await page.locator('#err').innerText());
     assert.match(await page.locator('#diag').innerText(),/First frame/);
     item.steps.push('first WebGL frame');
     await page.locator('[data-tab="flowers"]').click();
     // Keep testing only after manifest fetch and licensed model parse.
-    await page.waitForFunction(()=>document.querySelector('#panel')?.innerText.includes('Asset manifest: 2 entries'),{timeout:30000});
-    await page.waitForFunction(()=>document.querySelector('#panel')?.innerText.includes('1 loaded external'),{timeout:30000});
+    await page.waitForFunction(()=>document.querySelector('#panel')?.innerText.includes('Asset manifest: 2 entries'),null,{timeout:30000});
+    await page.waitForFunction(()=>document.querySelector('#panel')?.innerText.includes('1 loaded external'),null,{timeout:30000});
     item.steps.push('manifest and real GLB');
 
     const button=page.locator('[data-add="rose-sym-5d4ad32"]');
@@ -69,6 +69,16 @@ async function runCase(label,options){
     const restored=JSON.parse(await page.locator('#js').inputValue());
     assert.equal(restored.items.length,design.items.length,'load restores flower count');
     item.steps.push('new / load');
+    // Import a design referencing a missing model: the flower must NOT be discarded.
+    const missing={...restored.items[0],id:999,n:999,a:'imp-unavailable-rose',x:0.2,y:0.34,z:0.2,r:0,s:1};
+    const withMissing={...restored,items:[...restored.items,missing]};
+    await page.locator('#js').fill(JSON.stringify(withMissing));
+    await page.locator('[data-s="imp"]').click();
+    await page.locator('[data-s="exp"]').click();
+    const safe=JSON.parse(await page.locator('#js').inputValue());
+    assert.equal(safe.items.length,withMissing.items.length,'missing asset remains in the design');
+    assert.ok(safe.items.some(x=>x.a==='imp-unavailable-rose'),'unknown asset ID must survive');
+    item.steps.push('missing model preserved');
 
     await page.locator('[data-tab="preview"]').click();
     assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('pv')),true);
