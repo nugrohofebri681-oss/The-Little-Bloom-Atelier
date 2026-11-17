@@ -41,6 +41,33 @@ async function runCase(label,options){
     const button=page.locator('[data-add="rose-sym-5d4ad32"]');
     assert.equal(await button.isDisabled(),false,'Sketchfab rose must be available');
     await button.click();
+    if(label==='android-mobile'){
+      await page.waitForFunction(()=>{
+        const q=window.__atelierQA?.();
+        return q?.sheetCompact && q?.selectedScreen &&
+          q.selectedScreen.y>q.safe.top+10 && q.selectedScreen.y<q.safe.bottom-10;
+      },null,{timeout:15000});
+      item.mobileAddUI=await page.evaluate(()=>window.__atelierQA());
+      assert.equal(await page.locator('#sheetHandle').getAttribute('aria-expanded'),'false');
+      await page.locator('#sheetHandle').click();
+      assert.equal(await page.locator('#sheetHandle').getAttribute('aria-expanded'),'true');
+      await page.locator('[data-tab="arrange"]').click();
+      await page.locator('[data-m="adv"]').click();
+      const before=Number(await page.locator('[data-k="x"]').inputValue());
+      await page.locator('[data-nudge="x:.01"]').click();
+      const after=Number(await page.locator('[data-k="x"]').inputValue());
+      assert.ok(after>before,'precision nudge should move selected flower');
+      await page.waitForFunction(()=>{
+        const q=window.__atelierQA?.();
+        return q?.selectedScreen && q.selectedScreen.y>q.safe.top && q.selectedScreen.y<q.safe.bottom;
+      },null,{timeout:10000});
+      item.mobileEditUI=await page.evaluate(()=>window.__atelierQA());
+      await page.locator('[data-a="done"]').click();
+      assert.equal(await page.locator('#sheetHandle').getAttribute('aria-expanded'),'false');
+      await page.locator('#sheetHandle').click();
+      item.steps.push('mobile collapse / safe focus / precision nudge');
+      await page.screenshot({path:'test-results/android-safe-edit.png',fullPage:true});
+    }
     assert.equal(await page.locator('#bUndo').isDisabled(),false);
     await page.locator('#bUndo').click();
     assert.equal(await page.locator('#bRedo').isDisabled(),false);
@@ -84,6 +111,7 @@ async function runCase(label,options){
 
     // Arrangement choices must stay editable, undoable, and compatible with v1 JSON.
     await page.locator('[data-tab="arrange"]').click();
+    await page.locator('[data-m="simple"]').click();
     assert.equal(await page.locator('#layout').inputValue(),'dome');
     await page.locator('#layout').selectOption('garden');
     await page.locator('[data-tab="save"]').click();
@@ -140,6 +168,9 @@ async function runCase(label,options){
           const radius=Number(await page.locator('#stats').getAttribute('data-view-radius'));
           assert.ok(radius>1.4,'Fit must zoom out enough for a full 30-rose mobile bouquet: '+radius);
           item.fitRadius=radius;
+          const fit=await page.evaluate(()=>window.__atelierQA());
+          item.mobileFitUI=fit;
+          assert.ok(fit.safe.height>100,'a usable viewport must remain above editing controls');
           await page.screenshot({path:'test-results/android-30-roses.png',fullPage:true});
         }
         await page.locator('[data-tab="save"]').click();
