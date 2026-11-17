@@ -676,6 +676,8 @@ function panel(){const p=$("panel");if(!tab||tab==="preview"){p.hidden=true;retu
   <button data-wrap-toggle aria-pressed="${w.enabled}">${w.enabled?"✓ Wrapped":"○ Bare stems"}</button>
   <button data-ribbon-toggle aria-pressed="${w.ribbon}">${w.ribbon?"✓ Ribbon":"○ No ribbon"}</button></div>
   <small>Lightweight 3D folded paper below the blooms, with an optional bow. Changes are saved with the bouquet.</small>
+  <label>Paper silhouette</label><div class="swatches" role="group" aria-label="Wrapping fold">
+   ${Object.entries(FOLDS).map(([k,name])=>`<button data-fold="${k}" aria-pressed="${w.fold===k}">${name}</button>`).join("")}</div>
   <label>Wrapping paper</label><div class="swatches" role="group" aria-label="Wrapping paper color">${Object.entries(PAPER).map(([k,[name,color]])=>`<button data-paper="${k}" aria-pressed="${w.paper===k}"><span class="swatch-dot" style="background:#${color.toString(16).padStart(6,"0")}"></span>${name}</button>`).join("")}</div>
   <label>Ribbon</label><div class="swatches" role="group" aria-label="Ribbon color">${Object.entries(BOW).map(([k,[name,color]])=>`<button data-bow="${k}" aria-pressed="${w.bow===k}"><span class="swatch-dot" style="background:#${color.toString(16).padStart(6,"0")}"></span>${name}</button>`).join("")}</div></div>`
 }
@@ -695,6 +697,7 @@ P_.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
  else if(d.wrapToggle!==undefined){bq.wrap=normalizeWrap(bq.wrap);bq.wrap.enabled=!bq.wrap.enabled;commit()}
  else if(d.ribbonToggle!==undefined){bq.wrap=normalizeWrap(bq.wrap);bq.wrap.ribbon=!bq.wrap.ribbon;commit()}
  else if(d.paper&&Object.hasOwn(PAPER,d.paper)){bq.wrap=normalizeWrap(bq.wrap);bq.wrap.paper=d.paper;commit()}
+ else if(d.fold&&Object.hasOwn(FOLDS,d.fold)){bq.wrap=normalizeWrap(bq.wrap);bq.wrap.fold=d.fold;commit()}
  else if(d.bow&&Object.hasOwn(BOW,d.bow)){bq.wrap=normalizeWrap(bq.wrap);bq.wrap.bow=d.bow;commit()}
  else if(d.col&&it){it.c=d.col;commit()}
  else if(d.a==="done")setSheet(false);
@@ -715,7 +718,10 @@ window.__atelierQA=()=>{
  const v=it?new V3(it.x,it.y,it.z).project(cam):null;
  return {safe:area,sheetCompact:dock.classList.contains("compact"),
   panelVisible:!$("panel").hidden&&getComputedStyle($("panel")).display!=="none",
-  selectedId:sel,layout:bq.layout,wrap:normalizeWrap(bq.wrap),wrapVisible:wrapRoot.visible,paperColor:paperMat.color.getHex(),ribbonColor:ribbonMat.color.getHex(),flowerCount:bq.items.length,quality:QN[st.q],radius:st.r,
+  selectedId:sel,layout:bq.layout,wrap:normalizeWrap(bq.wrap),wrapVisible:wrapRoot.visible,paperColor:paperMat.color.getHex(),ribbonColor:ribbonMat.color.getHex(),
+  paperMeshCount:Object.values(paperMeshes).filter(mesh=>mesh.visible).length,
+  paperTriangles:paperMeshes[normalizeWrap(bq.wrap).fold].geometry.index.count/3,
+  bowDepth:(()=>{const bounds=new T.Box3().setFromObject(bowParts);return Number((bounds.max.z-bounds.min.z).toFixed(4))})(),flowerCount:bq.items.length,quality:QN[st.q],radius:st.r,
   selectedScreen:v?{x:(v.x+1)*cv.clientWidth/2,y:(1-v.y)*cv.clientHeight/2}:null};
 };
 for(let i=0;i<5;i++)bq.items.push({id:nid,n:nid++,a:"rose-proc",c:"blush",x:0,y:.36,z:0,r:0,s:1});autoArrange();hist=[snap()];hix=0;
