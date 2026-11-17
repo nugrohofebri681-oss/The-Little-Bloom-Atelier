@@ -71,12 +71,12 @@ button:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
 <canvas id="c" tabindex="0" aria-label="3D rose viewer"></canvas>
 <div class="top"><h1>The Little Bloom Atelier</h1><p>Create something beautiful, one bloom at a time.</p><div class="credits">3D Rose by <a href="https://sketchfab.com/symension123" target="_blank" rel="noopener noreferrer">symension123</a> · <a href="https://sketchfab.com/3d-models/rose-5d4ad325925c4b4b8a8b4969b367f91a" target="_blank" rel="noopener noreferrer">Sketchfab / CC Attribution</a> · modified</div></div>
 <div id="load">Preparing the studio…</div>
-<div id="diag"></div>
+<div id="diag" hidden></div>
 <div id="err"></div>
-<div class="stats" id="stats"></div><div id="toast"></div>
+<div class="stats" id="stats" hidden></div><div id="toast"></div>
 <div class="dock" id="dock"><button id="sheetHandle" class="sheet-handle" aria-controls="panel" aria-expanded="false" hidden type="button"><span id="sheetLabel">Show editor</span><span id="sheetArrow" aria-hidden="true">⌃</span></button><div id="panel" hidden></div>
 <div class="row nav"><button data-tab="flowers">Flowers</button><button data-tab="arrange">Arrange</button><button data-tab="style">Style</button><button data-tab="save">Save</button><button data-tab="preview">Preview</button></div>
-<div class="row tools"><button id="bUndo">Undo</button><button id="bRedo">Redo</button><button id="bAuto" aria-pressed="false">Spin</button><button id="bReset" title="Fit the entire bouquet in view">Fit</button><button id="bQ">Quality: Medium</button><button id="bPerf" aria-pressed="true">Stats</button></div>
+<div class="row tools"><button id="bUndo">Undo</button><button id="bRedo">Redo</button><button id="bAuto" aria-pressed="false">Spin</button><button id="bReset" title="Fit the entire bouquet in view">Fit</button><button id="bQ">Quality: Medium</button><button id="bPerf" aria-pressed="false" title="Toggle performance metrics">Stats</button></div>
 <div hidden><button id="mSingle"></button><button id="mBouq"></button></div></div>
 <button id="pvx" hidden>Exit preview</button>
 <script>
@@ -445,9 +445,33 @@ for(const side of [-1,1]){
 const knot=new T.Mesh(new T.SphereGeometry(1,12,8),ribbonMat);
 knot.scale.set(.021,.017,.014);knot.position.z=.021;bowParts.add(knot);
 wrapRoot.traverse(o=>{o.raycast=()=>{}});
+/* Sculpt the sleeve mouth around the flower footprint while keeping the waist narrow.
+   We update only a few hundred shared vertices when the arrangement changes; not per frame. */
+let paperWidthKey="";
+function updatePaperWidth(){
+ const extent=Math.max(.176,...bq.items.map(it=>Math.hypot(it.x,it.z)+hR(it)*.45+.025));
+ const target=Math.min(.57,extent),key=target.toFixed(3);
+ if(key===paperWidthKey)return;paperWidthKey=key;
+ const expansion=target/.176,lowerLip=Math.min(.064,Math.max(0,(expansion-1)*.04));
+ const deform=(geometry,yOffset)=>{
+  const attr=geometry.attributes.position;
+  const base=geometry.userData.originalPosition||(geometry.userData.originalPosition=Float32Array.from(attr.array));
+  for(let i=0;i<attr.count;i++){
+   const j=i*3,y=base[j+1]+yOffset,t=Math.min(1,Math.max(0,(y-.055)/.263));
+   const f=t*t*(3-2*t); // smoothstep: full flare at the mouth, no shift at the tie
+   const k=1+(expansion-1)*f;
+   attr.array[j]=base[j]*k;attr.array[j+2]=base[j+2]*k;
+   attr.array[j+1]=base[j+1]-lowerLip*f
+  }
+  attr.needsUpdate=true;geometry.computeVertexNormals()
+ };
+ for(const mesh of Object.values(paperMeshes))deform(mesh.geometry,0);
+ deform(lining.geometry,lining.position.y)
+}
 function syncWrapping(){
  const w=normalizeWrap(bq.wrap);
  wrapRoot.visible=st.mode===2&&!!bq.items.length&&w.enabled;
+ updatePaperWidth();
  for(const [name,mesh] of Object.entries(paperMeshes))mesh.visible=name===w.fold;
  paperMat.color.setHex(PAPER[w.paper][1]);
  shadeMat.color.setHex(PAPER[w.paper][1]).multiplyScalar(.87);
