@@ -1,6 +1,6 @@
 # The Little Bloom Atelier 🌹
 
-A mobile-first 3D bouquet atelier, currently in **P2.4 development**.
+A mobile-first 3D bouquet atelier, currently in **P2.5 development**.
 
 ## Current build
 
@@ -13,6 +13,9 @@ A mobile-first 3D bouquet atelier, currently in **P2.4 development**.
 - **P2.3 mobile budget** caps the pixel ratio and shadow map size for Android/iOS; manual Low, Medium and High quality remain available.
 - **P2.4 real-rose GPU instancing:** repeated rigid GLB flowers share renderer batches by geometry and material, rather than incurring a new draw call for every copy. Selection maps each hit back to its flower ID. Browsers without WebGL instancing use the original meshes.
 - **P2.4 Android-first defaults:** Low quality starts automatically on Android/iOS, switching off expensive shadows; Medium and High remain selectable. Controls form a two-row toolbar at phone widths. Full-resolution assets and credits are unchanged.
+- **P2.5 floral arrangements:** choose Romantic Dome, Florist Spiral, or Wild Garden under Arrange (Simple). Changing a pattern is undoable, and the choice is included in new design exports without breaking older v1 JSON files.
+- **P2.5 true portrait Fit:** the Fit button and smart auto-fit account for narrow horizontal field of view, automatically zooming out as needed for large bouquets instead of using the old 1.4 camera-distance ceiling. Canvas interactions can still zoom and rotate; presets keep the same flower assets.
+- **P2.5 scene lifecycle:** obsolete instancing groups are detached when no longer needed; model sharing remains enabled.
 - Validation and Android rendering still in progress; this is not yet a production release.
 
 ## Run
@@ -27,7 +30,7 @@ With Node.js 20+ run `node tests/source-smoke.mjs`. It checks inline JavaScript 
 
 ## Browser regression tests
 
-A GitHub Actions job runs `tests/browser-smoke.mjs` in a headless Chromium desktop viewport and an Android-sized emulated mobile viewport. It checks basic editing, load/save, missing-model preservation and repeated real GLB flowers (5, 12, 30), including whether draw calls remain bounded. The workflow uploads screenshots and a JSON result as the **browser-review** artifact.
+A GitHub Actions job runs `tests/browser-smoke.mjs` in a headless Chromium desktop viewport and an Android-sized emulated mobile viewport. It checks basic editing, load/save, missing-model preservation and repeated real GLB flowers (5, 12, 30), including whether draw calls remain bounded. P2.5 also verifies arrangement selection, undo/redo, and the mobile Fit camera on 30 roses. The workflow uploads screenshots and a JSON result as the **browser-review** artifact.
 
 The Android-sized run uses **software-rendered Chromium**: displayed FPS does **not** predict physical Samsung Galaxy A05 performance, temperature, memory pressure or battery usage.
 
