@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Little Bloom Atelier · P2.6</title>
+<title>The Little Bloom Atelier · P2.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
 <style>
@@ -51,6 +51,11 @@ button:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
  #panel .slider-field output{font-variant-numeric:tabular-nums;font-weight:600}
  #panel .slider-field input{display:block;min-height:32px;touch-action:pan-y}
  #panel .nudge-row button{font-size:11px;min-height:40px}
+ #panel .swatches{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:7px 0 13px}
+ #panel .swatches button{min-width:0;padding:4px;font-size:11px;min-height:42px;white-space:normal}
+ #panel .swatches button[aria-pressed=true]{outline:2px solid var(--maroon);outline-offset:1px}
+ #panel .style-section{margin-top:12px;padding-top:10px;border-top:1px solid var(--champ)}
+ #panel .swatch-dot{display:inline-block;width:11px;height:11px;border:1px solid #713f5044;border-radius:50%;vertical-align:middle;margin-right:3px}
  .top{max-width:calc(100% - 26px)}
 }
 @media(min-width:621px){.sheet-handle{display:none!important}}
@@ -330,11 +335,79 @@ const CATALOG=[{id:"rose-proc",name:"Garden Rose (procedural fallback)",sci:"Ros
 [["peony","Peony","Paeonia lactiflora","Elegant Blooms"],["ranunculus","Ranunculus","Ranunculus asiaticus","Soft Garden Flowers"],["tulip","Tulip","Tulipa gesneriana","Elegant Blooms"],["lisianthus","Lisianthus","Eustoma grandiflorum","Soft Garden Flowers"],["gypsophila","Baby's Breath","Gypsophila paniculata","Fillers"],["eucalyptus","Eucalyptus","Eucalyptus cinerea","Foliage"]].forEach(([id,name,sci,cat])=>CATALOG.push({id,name,sci,cat,fmt:"glb",origin:"planned",src:null,status:"missing",headR:.05,colors:null,lic:"n/a"}));
 const MAXN=30,KEY="bloom.design.v1",inst=new Map(),cmat=new Map(),studioG=()=>groups[2];
 const ray=new T.Raycaster(),ndc=new T.Vector2(),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let bq={seed:1,full:1,layout:"dome",items:[]},sel=null,nid=1,hist=[],hix=0,mode="simple",tab=null,flt={q:"",cat:"",av:""},armed=null;
+let bq={seed:1,full:1,layout:"dome",wrap:{enabled:true,paper:"champagne",ribbon:true,bow:"maroon"},items:[]},sel=null,nid=1,hist=[],hix=0,mode="simple",tab=null,flt={q:"",cat:"",av:""},armed=null;
 const cur=()=>bq.items.find(i=>i.id===sel),asset=id=>CATALOG.find(a=>a.id===id);
 function toast(m){const t=$("toast");t.textContent=m;t.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.opacity=0,3200)}
 const selR=new T.Mesh(new T.TorusGeometry(.07,.003,6,36),new T.MeshBasicMaterial({color:0x879B83,depthTest:false}));selR.rotation.x=Math.PI/2;selR.renderOrder=9;selR.raycast=()=>{};scene.add(selR);
 function matFor(c){if(!cmat.has(c)){const m=mats.petal.clone();m.color.setHex((COLS[c]||COLS.blush)[1]);cmat.set(c,m)}return cmat.get(c)}
+
+/* ===== P2.7 florist presentation =====
+   All geometry is procedural and built ONCE. No new textures, fonts or network requests.
+   The sleeve is open at the top, below flower heads, and deliberately non-pickable.
+   Visibility and palette are part of the existing undoable bouquet document. */
+const PAPER={champagne:["Champagne",0xe8d7c6],blush:["Blush",0xdca5b3],sage:["Sage",0x9baf99],ivory:["Ivory",0xf0e9da]};
+const BOW={maroon:["Maroon",0x713f50],rose:["Dusty rose",0xc98e9f],champagne:["Champagne",0xd9bc91],sage:["Sage",0x879b83]};
+const defaultWrap=()=>({enabled:true,paper:"champagne",ribbon:true,bow:"maroon"});
+function normalizeWrap(w,legacy=false){
+ const d=defaultWrap();
+ if(!w||typeof w!=="object")return {...d,enabled:!legacy};
+ return {enabled:typeof w.enabled==="boolean"?w.enabled:d.enabled,
+  paper:Object.hasOwn(PAPER,w.paper)?w.paper:d.paper,
+  ribbon:typeof w.ribbon==="boolean"?w.ribbon:d.ribbon,
+  bow:Object.hasOwn(BOW,w.bow)?w.bow:d.bow}
+}
+const wrapRoot=new T.Group();wrapRoot.name="florist wrapping";scene.add(wrapRoot);
+const paperMat=new T.MeshStandardMaterial({color:PAPER.champagne[1],vertexColors:true,side:T.DoubleSide,roughness:.96,metalness:0});
+const shadeMat=new T.MeshStandardMaterial({color:0xb2a293,side:T.DoubleSide,roughness:1,metalness:0});
+const ribbonMat=new T.MeshStandardMaterial({color:BOW.maroon[1],side:T.DoubleSide,roughness:.63,metalness:.03});
+/* Subtle faceted folds and a gently staggered paper edge. */
+function sleeveGeometry(){
+ const n=32,pos=[],colors=[],index=[],up=.308,down=.049,topR=.184,baseR=.036;
+ for(let i=0;i<=n;i++){
+  const a=i*2*Math.PI/n,pleat=1+.065*Math.cos(i*Math.PI*.5),r=topR*pleat;
+  const ty=up+.008*Math.cos(i*Math.PI*.5);
+  pos.push(Math.sin(a)*baseR,down,Math.cos(a)*baseR,Math.sin(a)*r,ty,Math.cos(a)*r);
+  const light=.9+.09*Math.cos(i*Math.PI*.5);
+  for(let k=0;k<2;k++)colors.push(light,light*.994,light*.985)
+ }
+ for(let i=0;i<n;i++){const j=i*2;index.push(j,j+1,j+3,j,j+3,j+2)}
+ const g=new T.BufferGeometry();g.setAttribute("position",new T.Float32BufferAttribute(pos,3));
+ g.setAttribute("color",new T.Float32BufferAttribute(colors,3));g.setIndex(index);g.computeVertexNormals();return g
+}
+const paper=new T.Mesh(sleeveGeometry(),paperMat);paper.castShadow=false;wrapRoot.add(paper);
+/* Inner lining makes the lip visibly folded instead of a single open surface. */
+const lining=new T.Mesh(new T.CylinderGeometry(.174,.032,.222,32,1,true),shadeMat);
+lining.position.y=.157;lining.castShadow=false;wrapRoot.add(lining);
+const band=new T.Mesh(new T.CylinderGeometry(.093,.074,.041,24,1,true),ribbonMat);
+band.position.y=.146;band.castShadow=false;wrapRoot.add(band);
+const bowParts=new T.Group();bowParts.position.set(0,.153,.114);wrapRoot.add(bowParts);
+function bowShape(side){
+ const sh=new T.Shape();sh.moveTo(0,0);
+ sh.bezierCurveTo(side*.029,.049,side*.097,.066,side*.102,.034);
+ sh.bezierCurveTo(side*.116,-.008,side*.035,-.031,0,0);
+ return new T.ShapeGeometry(sh,7)
+}
+for(const side of [-1,1]){
+ const loop=new T.Mesh(bowShape(side),ribbonMat);bowParts.add(loop);
+ const tailShape=new T.Shape();tailShape.moveTo(0,0);
+ tailShape.lineTo(side*.024,-.028);tailShape.lineTo(side*.066,-.109);
+ tailShape.lineTo(side*.044,-.099);tailShape.lineTo(side*.02,-.111);
+ tailShape.lineTo(side*.009,-.046);tailShape.closePath();
+ const tail=new T.Mesh(new T.ShapeGeometry(tailShape),ribbonMat);
+ tail.position.z=-.002;bowParts.add(tail)
+}
+const knot=new T.Mesh(new T.SphereGeometry(1,9,6),ribbonMat);
+knot.scale.set(.020,.015,.009);knot.position.z=.007;bowParts.add(knot);
+wrapRoot.traverse(o=>{o.raycast=()=>{}});
+function syncWrapping(){
+ const w=normalizeWrap(bq.wrap);
+ wrapRoot.visible=st.mode===2&&!!bq.items.length&&w.enabled;
+ paperMat.color.setHex(PAPER[w.paper][1]);
+ shadeMat.color.setHex(PAPER[w.paper][1]).multiplyScalar(.87);
+ ribbonMat.color.setHex(BOW[w.bow][1]);
+ band.visible=bowParts.visible=w.ribbon
+}
+
 /* Deterministic floral silhouettes: head radii determine spacing; the choice is saved in v1 design JSON. */
 function place(it,i){
  const A=asset(it.a)||{headR:.05},rr=rng(bq.seed*977+i*31),layout=bq.layout||"dome";
