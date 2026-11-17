@@ -89,6 +89,42 @@ async function runCase(label,options){
     item.steps.push('preview / exit');
     await page.screenshot({path:'test-results/'+label+'.png',fullPage:true});
     item.stats=await page.locator('#stats').innerText();
+
+    // GPU instancing workload: verify draw calls stay nearly flat with 5, 12 and 30 REAL roses.
+    // These FPS numbers use SwiftShader software rendering and are NOT Samsung A05 benchmarks.
+    if(label==='android-mobile'){
+      while((await page.locator('#bQ').innerText()).trim()!=='Quality: Low'){
+        await page.locator('#bQ').click();
+      }
+      item.bouquetBenchmarks=[];
+      const template=design.items.find(x=>x.a==='rose-sym-5d4ad32');
+      let baselineCalls=null;
+      for(const count of [5,12,30]){
+        const items=Array.from({length:count},(_,i)=>{
+          const angle=i*2.399963229728653,rad=Math.min(.55,.08*Math.sqrt(i));
+          return {...template,id:i+1,n:i+1,a:'rose-sym-5d4ad32',
+            x:+(rad*Math.cos(angle)).toFixed(4),y:+(.36-rad*.13).toFixed(4),
+            z:+(rad*Math.sin(angle)).toFixed(4),r:0,s:1};
+        });
+        await page.locator('#js').fill(JSON.stringify({...design,items}));
+        await page.locator('[data-s="imp"]').click();
+        await page.locator('[data-tab="arrange"]').click();
+        await page.waitForFunction(n=>document.querySelector('#panel')?.innerText.includes(n+'/30 flowers'),count,{timeout:30000});
+        await page.waitForTimeout(1300);
+        const stats=await page.locator('#stats').innerText();
+        const calls=Number(stats.match(/Draw calls (\d+)/)?.[1]);
+        const fps=Number(stats.match(/(\d+) fps/)?.[1]);
+        assert.ok(Number.isFinite(calls)&&calls>0,'missing draw-call measurement');
+        if(baselineCalls===null)baselineCalls=calls;
+        assert.ok(calls<=baselineCalls+6,'draw calls unexpectedly scale with repeated models: '+calls+' > '+baselineCalls);
+        assert.equal(await page.locator('#err').evaluate(el=>getComputedStyle(el).display),'none','fatal error during stress');
+        item.bouquetBenchmarks.push({count,calls,fps,stats:stats.replaceAll('\n',' ')});
+        if(count===30)await page.screenshot({path:'test-results/android-30-roses.png',fullPage:true});
+        await page.locator('[data-tab="save"]').click();
+      }
+      item.steps.push('5 / 12 / 30 real-rose GPU instancing');
+      console.log('BENCHMARK',JSON.stringify(item.bouquetBenchmarks));
+    }
     assert.deepEqual(errors,[],'page errors');
     console.log('PASS',label,item.steps.join(' | '),item.stats.replaceAll('\n',' '));
   }catch(e){
