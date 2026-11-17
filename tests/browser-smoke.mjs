@@ -49,9 +49,20 @@ async function runCase(label,options){
       },null,{timeout:15000});
       item.mobileAddUI=await page.evaluate(()=>window.__atelierQA());
       assert.equal(await page.locator('#sheetHandle').getAttribute('aria-expanded'),'false');
+      // A canvas tap on the selected flower's projected center must open
+      // precision editing; the target gets a 38px touch tolerance on mobile.
+      const target=item.mobileAddUI.selectedScreen;
+      await page.mouse.click(target.x,target.y);
+      await page.waitForFunction(()=>{
+        const q=window.__atelierQA?.();
+        return q?.selectedId!==null && q?.panelVisible &&
+          document.querySelector('[data-m="adv"]')?.getAttribute('aria-pressed')==='true';
+      },null,{timeout:15000});
+      item.steps.push('tap-to-select opens advanced panel');
+      await page.locator('#sheetHandle').click();
+      assert.equal(await page.locator('#sheetHandle').getAttribute('aria-expanded'),'false');
       await page.locator('#sheetHandle').click();
       assert.equal(await page.locator('#sheetHandle').getAttribute('aria-expanded'),'true');
-      await page.locator('[data-tab="arrange"]').click();
       await page.locator('[data-m="adv"]').click();
       const before=Number(await page.locator('[data-k="x"]').inputValue());
       await page.locator('[data-nudge="x:.01"]').click();
