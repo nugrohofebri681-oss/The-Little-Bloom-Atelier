@@ -490,16 +490,21 @@ function paintGiftTag(){
  ctx.font="500 18px Georgia,serif";ctx.fillText("THE LITTLE BLOOM ATELIER",W/2,57);
  ctx.fillStyle="rgba(113,63,80,.38)";ctx.fillRect(164,85,184,1.5);
  ctx.fillStyle=ink;ctx.font="italic 500 38px Georgia,serif";ctx.fillText("For You",W/2,124);
- const words=tag.text.trim().split(/\s+/).filter(Boolean),lines=[];let line="";
- ctx.font="26px Georgia,serif";
- for(const word of words){
-  const next=line?line+" "+word:word;
-  if(ctx.measureText(next).width>420&&line){lines.push(line);line=word}
-  else line=next
+ const words=tag.text.trim().split(/\s+/).filter(Boolean);
+ let lines=[],size=26;
+ // Fit the full 80-character note on up to 3 readable rows without silently clipping it.
+ for(;size>=16;size-=2){
+  ctx.font=size+"px Georgia,serif";lines=[];let line="";
+  for(const word of words){
+   const next=line?line+" "+word:word;
+   if(ctx.measureText(next).width>420&&line){lines.push(line);line=word}
+   else line=next
+  }
+  if(line)lines.push(line);
+  if(lines.length<=3)break
  }
- if(line)lines.push(line);
- const shown=lines.slice(0,3),start=194-(shown.length-1)*9;
- ctx.fillStyle=ink;shown.forEach((txt,i)=>ctx.fillText(txt,W/2,start+i*36,425));
+ const shown=lines.slice(0,3),spacing=Math.max(26,size+9),start=216-(shown.length-1)*spacing/2;
+ ctx.fillStyle=ink;shown.forEach((txt,i)=>ctx.fillText(txt,W/2,start+i*spacing,425));
  ctx.fillStyle="rgba(113,63,80,.42)";ctx.font="italic 18px Georgia,serif";
  ctx.fillText("made with care",W/2,284);
  tagTexture.needsUpdate=true
