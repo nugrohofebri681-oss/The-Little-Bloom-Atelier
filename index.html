@@ -354,7 +354,9 @@ const autoArrange=()=>{bq.items.forEach((it,i)=>place(it,i));relax(bq.items,80);
    Only zoom out automatically; the Fit control can reframe after manual camera movement. */
 function fitBouquet(force){
  if(!bq.items.length){if(force){st.r=.85;st.tgt.set(0,.23,0)}return}
- const a=cam.aspect||1,vertical=Math.tan(cam.fov*Math.PI/360),horizontal=Math.max(.075,vertical*a);
+ const area=safeRect(),vh=Math.max(1,cv.clientHeight||innerHeight),vw=Math.max(1,cv.clientWidth||innerWidth);
+ const vertical=Math.max(.06,Math.tan(cam.fov*Math.PI/360)*(area.height/vh));
+ const horizontal=Math.max(.06,Math.tan(cam.fov*Math.PI/360)*(cam.aspect||1)*(area.width/vw));
  let width=.12,height=.22;
  for(const it of bq.items){
   const r=hR(it);
@@ -434,7 +436,7 @@ function syncScene(force){if(force)[...inst.keys()].forEach(drop);
  const live=new Set([...inst.values()].map(e=>e.o).concat(batchMap?[...batchMap.values()]:[]));
  studioG().children.slice().forEach(c=>{if(!live.has(c)){studioG().remove(c);disposeObj(c)}});
  syncBatches();fitBouquet(false);syncRing()}
-function updateOne(it){syncScene()}
+function updateOne(it){syncScene();if(it.id===sel)focusFlower(it,false)}
 function studioRefresh(force){syncScene(force)}
 function syncRing(){const it=cur();selR.visible=!!it&&st.mode===2&&!document.body.classList.contains("pv");if(it)selR.position.set(it.x,it.y,it.z)}
 const snap=()=>JSON.stringify(bq);
@@ -442,7 +444,9 @@ function commit(){const k=snap();if(k!==hist[hix]){hist=hist.slice(0,hix+1);hist
 function restore(j){bq=JSON.parse(j);nid=Math.max(nid,bq.items.reduce((m,i)=>Math.max(m,i.id),0)+1);if(!cur())sel=null;studioRefresh();updUI()}
 $("bUndo").onclick=()=>{if(hix>0){hix--;restore(hist[hix])}};$("bRedo").onclick=()=>{if(hix<hist.length-1){hix++;restore(hist[hix])}};
 function addFlower(id){const A=asset(id);if(!A||A.status!=="available")return;if(bq.items.length>=MAXN)return toast("Maximum "+MAXN+" flowers");
- const it={id:nid,n:nid++,a:id,c:A.colors?A.colors[0]:"blush",x:0,y:.36,z:0,r:0,s:1};bq.items.push(it);if(mode==="simple")autoArrange();else{place(it,bq.items.length-1);relax([it])}sel=it.id;commit()}
+ const it={id:nid,n:nid++,a:id,c:A.colors?A.colors[0]:"blush",x:0,y:.36,z:0,r:0,s:1};bq.items.push(it);if(mode==="simple")autoArrange();else{place(it,bq.items.length-1);relax([it])}
+ sel=it.id;commit();if(mobileUI()){setSheet(false);focusFlower(it,true)}
+}
 function removeSel(){if(!sel)return toast("Tap a flower first");bq.items=bq.items.filter(i=>i.id!==sel);sel=null;commit()}
 /* tap-to-select (does not fire after orbit/pinch drags) */
 let dn=null;cv.addEventListener("pointerdown",e=>{dn=ptrs.size>1?null:[e.clientX,e.clientY,performance.now()]});
@@ -451,7 +455,9 @@ cv.addEventListener("pointerup",e=>{if(!dn||st.mode!==2)return;if(Math.hypot(e.c
  if(hit){
   if(hit.object.isInstancedMesh&&hit.instanceId!==undefined)id=hit.object.userData.itemIds[hit.instanceId]??null;
   else{let o=hit.object;while(o&&o.userData.id==null)o=o.parent;if(o)id=o.userData.id}
- }sel=id;updUI()}dn=null});
+ }sel=id;
+  if(id!==null&&mobileUI()){tab="arrange";mode="adv";setSheet(true);focusFlower(cur(),true)}
+  updUI()}dn=null});
 /* storage */
 function idb(m,key,val){return new Promise((ok,no)=>{try{const q=indexedDB.open("bloom",1);q.onupgradeneeded=()=>q.result.createObjectStore("glb");q.onerror=()=>no(q.error);q.onsuccess=()=>{const s=q.result.transaction("glb",m==="get"?"readonly":"readwrite").objectStore("glb"),r=m==="get"?s.get(key):s.put(val,key);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}}catch(e){no(e)}})}
 const toObj=()=>({v:1,meta:{app:"The Little Bloom Atelier",saved:new Date().toISOString()},seed:bq.seed,full:bq.full,layout:bq.layout||"dome",items:bq.items,assets:[...new Set(bq.items.map(i=>i.a))]});
@@ -526,9 +532,9 @@ function panel(){const p=$("panel");if(!tab||tab==="preview"){p.hidden=true;retu
  else if(tab==="save"){const L=CATALOG.filter(a=>a.approx).pop();h+=`<div class=r><button data-s="save">Save</button><button data-s="load">${armed==="load"?"Tap to confirm":"Load"}</button><button data-s="new">${armed==="new"?"Tap to confirm":"New"}</button></div><div class=r><button data-s="exp">Export JSON</button><button data-s="imp">Import JSON</button></div><textarea id=js rows=3 style="width:100%" placeholder="Exported JSON appears here. Paste JSON and tap Import."></textarea><div class=r><label style="flex:1">Import GLB<input type=file id=gf accept=".glb"></label></div>`;
   if(L)h+=`<small>${esc(L.name)}: ${L.tris} tris, ${L.note}</small><label>Scale<input type=range data-adj=sc min=.5 max=2 step=.05 value=${L.adj.sc}></label><label>Rotation<input type=range data-adj=rot min=0 max=6.28 step=.05 value=${L.adj.rot}></label><label>Vertical offset<input type=range data-adj=off min=-.1 max=.1 step=.005 value=${L.adj.off}></label>`}
  p.innerHTML=h}
-function updUI(){panel();syncRing();$("bUndo").disabled=hix<=0;$("bRedo").disabled=hix>=hist.length-1}
-document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{const t=b.dataset.tab;if(t==="preview"){document.body.classList.add("pv");st.auto=true;$("pvx").hidden=false;syncRing();return}tab=tab===t?null:t;updUI()});
-$("pvx").onclick=()=>{document.body.classList.remove("pv");$("pvx").hidden=true;st.auto=false;$("bAuto").setAttribute("aria-pressed","false");syncRing()};
+function updUI(){panel();syncRing();$("bUndo").disabled=hix<=0;$("bRedo").disabled=hix>=hist.length-1;updateSheet()}
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{const t=b.dataset.tab;if(t==="preview"){document.body.classList.add("pv");st.auto=true;$("pvx").hidden=false;updateSafeProjection();syncRing();return}tab=tab===t?null:t;sheetExpanded=true;updUI()});
+$("pvx").onclick=()=>{document.body.classList.remove("pv");$("pvx").hidden=true;st.auto=false;$("bAuto").setAttribute("aria-pressed","false");updateSheet();syncRing()};
 const P_=$("panel");
 P_.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const it=cur(),d=b.dataset;
  if(d.add)addFlower(d.add);else if(d.m){mode=d.m;updUI()}else if(d.col&&it){it.c=d.col;commit()}
